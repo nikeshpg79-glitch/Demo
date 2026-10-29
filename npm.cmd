@@ -6,3 +6,4 @@ if exist "%NODE_DIR%\npm.cmd" (
 ) else (
     npm %*
 )
+

@@ -1,4 +1,12 @@
+import sys
 import os
+
+# Ensure backend directory is in sys.path regardless of how script is executed
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+_backend_dir = os.path.dirname(_current_dir)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -24,10 +32,11 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS configuration for React frontend
+# CORS configuration for React frontend (allows all localhost/127.0.0.1 ports and configured origins)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -54,6 +63,17 @@ async def security_rate_limiting_middleware(request: Request, call_next):
     response = await call_next(request)
     return response
 
+# Root redirect / status
+@app.get("/", tags=["System Root"])
+async def root():
+    return {
+        "service": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+        "status": "online",
+        "docs": "/docs",
+        "health": f"{settings.API_PREFIX}/health"
+    }
+
 # Global Exception Handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -75,4 +95,5 @@ app.include_router(security.router, prefix=f"{settings.API_PREFIX}/security")
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8001))
-    uvicorn.run("app.main:app", host="127.0.0.1", port=port, reload=True)
+    print(f"Starting PQC HealthSecure Backend on http://127.0.0.1:{port} (docs: http://127.0.0.1:{port}/docs)")
+    uvicorn.run("app.main:app", host="127.0.0.1", port=port, reload=True, app_dir=_backend_dir)

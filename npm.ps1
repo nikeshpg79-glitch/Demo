@@ -6,3 +6,4 @@ if (Test-Path "$nodeDir\npm.cmd") {
 } else {
     & npm @allArgs
 }
+
