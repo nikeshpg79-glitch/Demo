@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # PQC-HEALTH: Quantum-Secure Hospital-to-Laboratory Data Exchange
 > **NIST Post-Quantum Cryptography Architecture**
 > **Theme:** Long-Term Confidentiality in Hospital-to-Laboratory Data Exchange
@@ -79,3 +80,6 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 * **Zero Secret Exposure**: Secret keys, Supabase service-role keys, and private keys remain strictly on the backend/session layer and are never compiled into the frontend.
 # pqc-healthcare
 PQC HealthSecure - Secure healthcare data exchange using post-quantum cryptography
+=======
+# Demo
+>>>>>>> 892a764958f3e15db6c9ab5ffc2f1bf0290f55a5
