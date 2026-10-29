@@ -7,14 +7,14 @@ import requests
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
 
-base = 'http://127.0.0.1:8000'
+base = os.getenv("BACKEND_URL", "http://127.0.0.1:8001")
 
 print('==========================================================================================')
-print('PQC HEALTHSECURE — AUTOMATED VERIFICATION SUITE')
+print('PQC HEALTHSECURE â€” AUTOMATED VERIFICATION SUITE')
 print('==========================================================================================')
 
 # TEST 1: Multilingual files
-locales_dir = r'c:\Users\Bhagya HG\OneDrive\Desktop\pqc-healthcare\frontend\src\i18n\locales'
+locales_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'frontend', 'src', 'i18n', 'locales')
 languages = ['en', 'kn', 'hi']
 lang_ok = True
 for lng in languages:
@@ -26,7 +26,7 @@ for lng in languages:
         with open(p, 'r', encoding='utf-8') as f:
             d = json.load(f)
             assert 'nav' in d and 'visualizer' in d and 'security' in d, f'Incomplete keys in {lng}.json'
-print(f'1. Feature 1 (Multilingual): English, Kannada (ಕನ್ನಡ), Hindi (हिन्दी) verified: {lang_ok}')
+print(f'1. Feature 1 (Multilingual): English, Kannada (à²•à²¨à³à²¨à²¡), Hindi (à¤¹à¤¿à¤¨à¥à¤¦à¥€) verified: {lang_ok}')
 
 # TEST 2: Transmission Monitor
 r_tx = requests.get(f'{base}/api/security/transmissions')
@@ -84,7 +84,7 @@ r_dec = requests.post(f'{base}/api/pqc/kem/decapsulate', json={'ciphertext': r_e
 kem_match = (r_enc['shared_secret'] == r_dec['shared_secret'])
 
 r_dsa = requests.post(f'{base}/api/pqc/dsa/keygen').json()
-msg = 'SIH-PQC-REPORT-AUDIT-SAMPLE'
+msg = 'PQC-REPORT-AUDIT-SAMPLE'
 r_sig = requests.post(f'{base}/api/pqc/dsa/sign', json={'data': msg, 'private_key': r_dsa['private_key']}).json()
 r_v_ok = requests.post(f'{base}/api/pqc/dsa/verify', json={'data': msg, 'signature': r_sig['signature'], 'public_key': r_dsa['public_key']}).json()
 r_v_bad = requests.post(f'{base}/api/pqc/dsa/verify', json={'data': msg + 'TAMPER', 'signature': r_sig['signature'], 'public_key': r_dsa['public_key']}).json()
@@ -96,3 +96,4 @@ print(f'   - NIST FIPS 203 ML-KEM-768 Shared Secret Match: {kem_match}')
 print(f'   - NIST FIPS 204 ML-DSA-65 Validated & Tamper Rejected: {dsa_ok}')
 print(f'   - QpiAI Quantum SDK v0.7.5: Status: {r_quantum.get("status")} | Qubits: {r_quantum.get("qubits")} | Entropy: {r_quantum.get("quantum_entropy_bits")} bits | Depth: {r_quantum.get("circuit_depth")}')
 print('==========================================================================================')
+

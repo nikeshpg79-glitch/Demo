@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { MedicalReport } from '../types';
 import { dbService } from '../lib/dbService';
+import { DecryptionTimelineModal } from './pqc-animation/DecryptionTimelineModal';
 
 interface MedicalReportsViewProps {
   reports: MedicalReport[];
@@ -27,6 +28,7 @@ export const MedicalReportsView: React.FC<MedicalReportsViewProps> = ({ reports 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [verifying, setVerifying] = useState<boolean>(false);
   const [verificationResult, setVerificationResult] = useState<{ valid: boolean; message: string } | null>(null);
+  const [showDecryptionModal, setShowDecryptionModal] = useState<boolean>(false);
 
   const activeReport = reports.find((r) => r.id === selectedReportId) || reports[0];
 
@@ -119,8 +121,17 @@ export const MedicalReportsView: React.FC<MedicalReportsViewProps> = ({ reports 
                 </p>
               </div>
 
-              {/* Decrypt / Encrypt Toggle */}
-              <div className="flex items-center space-x-2">
+              {/* Decrypt / Encrypt Toggle & Animation Trigger */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setShowDecryptionModal(true)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-teal-500 via-cyan-400 to-emerald-400 text-slate-950 hover:opacity-95 shadow-md shadow-teal-500/20 flex items-center space-x-1.5 cursor-pointer uppercase tracking-wider transition-all"
+                  title="Launch step-by-step post-quantum authenticated decryption journey"
+                >
+                  <Unlock className="w-4 h-4" />
+                  <span>Decrypt &amp; Verify (PQC)</span>
+                </button>
+
                 <button
                   onClick={() => setIsDecrypted(!isDecrypted)}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer ${
@@ -358,6 +369,20 @@ export const MedicalReportsView: React.FC<MedicalReportsViewProps> = ({ reports 
         </div>
 
       </div>
+
+      {/* Patient Cryptographic Decryption Timeline Modal */}
+      {showDecryptionModal && activeReport && (
+        <DecryptionTimelineModal
+          isOpen={showDecryptionModal}
+          onClose={() => setShowDecryptionModal(false)}
+          recordId={activeReport.id}
+          recipientId={activeReport.patientId}
+          recipientRole="patient"
+          senderName={activeReport.doctorName || activeReport.technicianName}
+          senderRole="doctor"
+          cryptoEnvelope={activeReport.cryptoEnvelope}
+        />
+      )}
     </div>
   );
 };

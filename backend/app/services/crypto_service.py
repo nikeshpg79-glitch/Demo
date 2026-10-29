@@ -1,5 +1,4 @@
-"""
-Cryptographic Service Module for PQC-04
+"""Cryptographic Service Module for PQC Healthcare Platform
 Implements NIST FIPS 203 (ML-KEM-768), NIST FIPS 204 (ML-DSA-65),
 and authenticated AES-256-GCM encryption with QpiAI Quantum integration.
 """
@@ -9,6 +8,13 @@ import base64
 import json
 import hashlib
 from typing import Dict, Any, Tuple, Optional
+from dotenv import load_dotenv
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+backend_dir = os.path.dirname(os.path.dirname(current_dir))
+for p in [os.path.join(backend_dir, ".env"), os.path.join(backend_dir, "backend", ".env"), ".env", "backend/.env"]:
+    if os.path.exists(p):
+        load_dotenv(p, override=True)
 
 # NIST FIPS 203 (ML-KEM-768)
 try:
@@ -48,6 +54,16 @@ class PQCCryptoService:
         self.algorithm_kem = "ML-KEM-768"
         self.algorithm_dsa = "ML-DSA-65"
         self.algorithm_sym = "AES-256-GCM"
+        self.qpiai_token = os.getenv("QPIAI_API_TOKEN") or os.getenv("API_KEY") or ""
+        self.qpiai_cloud_connected = False
+
+        if HAS_QPIAI and self.qpiai_token:
+            try:
+                from qpiai_quantum.authentication import QpiAIQuantumAuth
+                QpiAIQuantumAuth.login(self.qpiai_token)
+                self.qpiai_cloud_connected = True
+            except Exception:
+                self.qpiai_cloud_connected = False
 
     def get_capabilities(self) -> Dict[str, Any]:
         """Returns the status of all cryptographic and quantum engines."""
@@ -74,6 +90,10 @@ class PQCCryptoService:
                 "sdk": "QpiAI Quantum SDK",
                 "version": getattr(qp, "__version__", "0.7.5") if HAS_QPIAI else "Not installed",
                 "available": HAS_QPIAI,
+                "cloud_enabled": bool(self.qpiai_token),
+                "cloud_authenticated": self.qpiai_cloud_connected,
+                "cloud_token_configured": bool(self.qpiai_token),
+                "cloud_token_fingerprint": f"{self.qpiai_token[:8]}...{self.qpiai_token[-8:]}" if self.qpiai_token else None,
                 "modules": ["QRNG", "Circuit", "ShorsAlgorithm", "BellStateGenerator"] if HAS_QPIAI else []
             }
         }
@@ -292,6 +312,8 @@ class PQCCryptoService:
             return {
                 "status": "Success",
                 "sdk": "QpiAI Quantum SDK v0.7.5",
+                "cloud_mode": "Active (QpiAI QCloud Token Authenticated)" if self.qpiai_cloud_connected else "Local Hardware Emulation",
+                "cloud_token_fingerprint": f"{self.qpiai_token[:8]}...{self.qpiai_token[-8:]}" if self.qpiai_token else "Not configured",
                 "qubits": num_qubits,
                 "state_space_dimension": state_space_dim,
                 "circuit_depth": circuit.depth() if hasattr(circuit, "depth") else num_qubits * 2,

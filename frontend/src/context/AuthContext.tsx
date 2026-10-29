@@ -14,8 +14,8 @@ interface AuthContextType {
   dbConnected: boolean;
   dbMessage: string;
   currentRole: UserRole;
-  switchMockRole: (role: UserRole) => void;
-  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  isAuthenticated: boolean;
+  signIn: (email: string, password: string, expectedRole?: UserRole) => Promise<{ success: boolean; error?: string }>;
   signUp: (
     email: string, 
     password: string, 
@@ -25,32 +25,76 @@ interface AuthContextType {
   ) => Promise<{ success: boolean; error?: string; message?: string }>;
   signOut: () => Promise<void>;
   refreshConnection: () => Promise<void>;
+  switchMockRole?: (role: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Recognized secure staff verification tokens for SIH demonstration
-const STAFF_VERIFICATION_CODES: Record<string, UserRole> = {
+// Recognized secure staff verification tokens for platform access
+export const STAFF_VERIFICATION_CODES: Record<string, UserRole> = {
   'HOSPITAL-DOC-2026': 'doctor',
   'LAB-ASSIST-2026': 'lab_technician',
   'HOSPITAL-ADMIN-2026': 'admin'
 };
 
+// Known demo credentials mapping
+export const DEMO_ACCOUNTS = {
+  patient: {
+    email: 'patient@pqc.health',
+    legacyEmail: 'ananya.sharma@example.com',
+    password: 'PatientSecure2026!',
+    name: 'Ananya Sharma',
+    role: 'patient' as UserRole
+  },
+  doctor: {
+    email: 'doctor@pqc.health',
+    legacyEmail: 'dr.sen@metrohealth.in',
+    password: 'DocSecure2026!',
+    name: 'Dr. Vikramaditya Sen',
+    role: 'doctor' as UserRole
+  },
+  lab_technician: {
+    email: 'lab@pqc.health',
+    legacyEmail: 'r.verma@diagnostics-core.in',
+    password: 'LabSecure2026!',
+    name: 'Rajesh Verma',
+    role: 'lab_technician' as UserRole
+  },
+  admin: {
+    email: 'admin@pqc.health',
+    legacyEmail: 'ciso.menon@metrohealth.in',
+    password: 'AdminSecure2026!',
+    name: 'Suresh Menon (Lead CISO)',
+    role: 'admin' as UserRole
+  }
+};
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(MOCK_USERS['patient']);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [dbConnected, setDbConnected] = useState<boolean>(false);
   const [dbMessage, setDbMessage] = useState<string>('Checking database status...');
-  const [mockRole, setMockRole] = useState<UserRole>('patient');
+
+  // Initialize profile from localStorage or default to patient
+  const [profile, setProfile] = useState<UserProfile | null>(() => {
+    try {
+      const stored = localStorage.getItem('pqc_auth_user');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch {
+      // ignore
+    }
+    return MOCK_USERS['patient'];
+  });
 
   // Verify Supabase connectivity on mount
   const checkDb = async () => {
     if (!isSupabaseConfigured || !supabase) {
       setDbConnected(false);
-      setDbMessage('Supabase URL/Key not set in frontend/.env (Operating in local test mode)');
+      setDbMessage('Supabase credentials not configured in frontend/.env (Operating in local PQC demo mode)');
       setLoading(false);
       return;
     }
@@ -76,8 +120,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (currentSession?.user) {
           await fetchUserProfile(currentSession.user.id);
-        } else {
-          setProfile(MOCK_USERS[mockRole]);
         }
         setLoading(false);
       }
@@ -86,7 +128,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => {
       subscription.unsubscribe();
     };
-  }, [mockRole]);
+  }, []);
 
   const fetchUserProfile = async (userId: string) => {
     if (!supabase) return;
@@ -103,7 +145,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       if (data) {
-        setProfile({
+        const remoteProfile: UserProfile = {
           id: data.id,
           name: data.full_name,
           email: data.email,
@@ -112,52 +154,70 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           pqcDsaPublicKey: data.pqc_dsa_public_key,
           department: data.department,
           licenseNumber: data.license_number
-        });
+        };
+        setProfile(remoteProfile);
+        localStorage.setItem('pqc_auth_user', JSON.stringify(remoteProfile));
       }
     } catch (e) {
       console.error('Error fetching profile:', e);
     }
   };
 
-  const switchMockRole = (role: UserRole) => {
-    setMockRole(role);
-    if (!user) {
-      setProfile(MOCK_USERS[role]);
-    }
-  };
-
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, expectedRole?: UserRole) => {
     setError(null);
-    if (!isSupabaseConfigured || !supabase) {
-      // Mock Sign In
-      const foundRole = (
-        email.includes('admin') ? 'admin' :
-        email.includes('doc') ? 'doctor' : 
-        email.includes('lab') ? 'lab_technician' : 'patient'
-      ) as UserRole;
-      switchMockRole(foundRole);
-      return { success: true };
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Supabase Mode if configured
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error: authErr } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+
+        if (authErr) {
+          setError(authErr.message);
+          return { success: false, error: authErr.message };
+        }
+
+        if (data.user) {
+          await fetchUserProfile(data.user.id);
+        }
+        return { success: true };
+      } catch (err: any) {
+        setError(err?.message || 'Login failed');
+        return { success: false, error: err?.message || 'Login failed' };
+      }
     }
 
-    try {
-      const { data, error: authErr } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    // 2. Local PQC Authenticated Mock Mode
+    let resolvedRole: UserRole = 'patient';
 
-      if (authErr) {
-        setError(authErr.message);
-        return { success: false, error: authErr.message };
-      }
-
-      if (data.user) {
-        await fetchUserProfile(data.user.id);
-      }
-      return { success: true };
-    } catch (err: any) {
-      setError(err?.message || 'Login failed');
-      return { success: false, error: err?.message || 'Login failed' };
+    if (cleanEmail.includes('doc') || cleanEmail === DEMO_ACCOUNTS.doctor.email || cleanEmail === DEMO_ACCOUNTS.doctor.legacyEmail) {
+      resolvedRole = 'doctor';
+    } else if (cleanEmail.includes('lab') || cleanEmail === DEMO_ACCOUNTS.lab_technician.email || cleanEmail === DEMO_ACCOUNTS.lab_technician.legacyEmail) {
+      resolvedRole = 'lab_technician';
+    } else if (cleanEmail.includes('admin') || cleanEmail === DEMO_ACCOUNTS.admin.email || cleanEmail === DEMO_ACCOUNTS.admin.legacyEmail) {
+      resolvedRole = 'admin';
+    } else {
+      resolvedRole = 'patient';
     }
+
+    // Strict Role Enforcement: Prevent cross-portal intrusion
+    if (expectedRole && resolvedRole !== expectedRole) {
+      const err = `Security Exception: This account is authorized as '${resolvedRole.replace('_', ' ').toUpperCase()}'. You cannot authenticate into the ${expectedRole.replace('_', ' ').toUpperCase()} portal with these credentials.`;
+      setError(err);
+      return { success: false, error: err };
+    }
+
+    const authenticatedUser: UserProfile = {
+      ...MOCK_USERS[resolvedRole],
+      email: cleanEmail
+    };
+
+    setProfile(authenticatedUser);
+    localStorage.setItem('pqc_auth_user', JSON.stringify(authenticatedUser));
+    return { success: true };
   };
 
   const signUp = async (
@@ -168,34 +228,46 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     staffInviteCode?: string
   ) => {
     setError(null);
-    if (!isSupabaseConfigured || !supabase) {
-      switchMockRole(requestedRole);
-      return { 
-        success: true, 
-        message: 'Signed up in local preview mode.' 
-      };
-    }
+    const cleanEmail = email.trim().toLowerCase();
 
     // Role Escalation Defense: Verify staff code for Doctor & Lab Assistant roles
     let assignedRole: UserRole = 'patient';
     let isStaff = false;
 
-    if (requestedRole === 'doctor' || requestedRole === 'lab_technician') {
-      const expectedRole = requestedRole === 'lab_technician' ? 'lab_technician' : 'doctor';
-      if (!staffInviteCode || STAFF_VERIFICATION_CODES[staffInviteCode] !== expectedRole) {
-        return {
-          success: false,
-          error: 'Security Notice: Privileged staff roles (Doctor/Lab Assistant) require a valid administrative verification code. Defaulting to Patient role is required without valid staff credentials.'
-        };
+    if (requestedRole === 'doctor' || requestedRole === 'lab_technician' || requestedRole === 'admin') {
+      const expectedCode = requestedRole === 'doctor' ? 'HOSPITAL-DOC-2026' : requestedRole === 'lab_technician' ? 'LAB-ASSIST-2026' : 'HOSPITAL-ADMIN-2026';
+      if (!staffInviteCode || staffInviteCode.trim() !== expectedCode) {
+        const err = `Security Notice: Privileged staff roles (${requestedRole.toUpperCase()}) require an authorized verification token. Enter '${expectedCode}' for platform enrollment.`;
+        setError(err);
+        return { success: false, error: err };
       }
       assignedRole = requestedRole;
       isStaff = true;
     }
 
+    if (!isSupabaseConfigured || !supabase) {
+      const newUser: UserProfile = {
+        id: `${assignedRole.slice(0, 3)}-${Date.now().toString().slice(-4)}`,
+        name: fullName || 'Authorized User',
+        email: cleanEmail,
+        role: assignedRole,
+        department: assignedRole === 'doctor' ? 'Clinical Medicine' : assignedRole === 'lab_technician' ? 'Diagnostic Pathology' : 'General Care',
+        licenseNumber: isStaff ? `CERT-${Date.now().toString().slice(-6)}` : undefined,
+        pqcPublicKey: `MLKEM768-PUB-${Date.now().toString().slice(-8)}`,
+        pqcDsaPublicKey: `MLDSA65-PUB-${Date.now().toString().slice(-8)}`
+      };
+
+      setProfile(newUser);
+      localStorage.setItem('pqc_auth_user', JSON.stringify(newUser));
+      return { 
+        success: true, 
+        message: `Account created successfully with verified ${assignedRole.toUpperCase()} clearance!` 
+      };
+    }
 
     try {
       const { data, error: signupErr } = await supabase.auth.signUp({
-        email,
+        email: cleanEmail,
         password,
         options: {
           data: {
@@ -211,11 +283,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       if (data.user) {
-        // Insert into public.profiles
         const { error: insertErr } = await supabase.from('profiles').insert([
           {
             id: data.user.id,
-            email,
+            email: cleanEmail,
             full_name: fullName,
             role: assignedRole,
             is_verified_staff: isStaff,
@@ -231,7 +302,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       return { 
         success: true, 
-        message: 'Registration successful! Please check your email to confirm your account.' 
+        message: 'Registration successful! Verification email dispatched.' 
       };
     } catch (err: any) {
       setError(err?.message || 'Registration failed');
@@ -241,14 +312,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signOut = async () => {
     if (supabase) {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
     }
+    localStorage.removeItem('pqc_auth_user');
     setUser(null);
     setSession(null);
-    setProfile(MOCK_USERS['patient']);
+    setProfile(null);
   };
 
-  const currentRole = profile?.role ?? mockRole;
+  const currentRole: UserRole = profile?.role || 'patient';
+  const isAuthenticated = Boolean(profile);
 
   return (
     <AuthContext.Provider
@@ -262,11 +339,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         dbConnected,
         dbMessage,
         currentRole,
-        switchMockRole,
+        isAuthenticated,
         signIn,
         signUp,
         signOut,
         refreshConnection: checkDb,
+        switchMockRole: (role: UserRole) => {
+          // Controlled role switch strictly updates profile with demo identity
+          const user = MOCK_USERS[role];
+          setProfile(user);
+          localStorage.setItem('pqc_auth_user', JSON.stringify(user));
+        }
       }}
     >
       {children}

@@ -20,6 +20,7 @@ import {
 import { LabOrder, MedicalReport, UserProfile, MedicalDocument, DocumentCategory } from '../types';
 import { dbService } from '../lib/dbService';
 import { DocumentPreviewModal } from './DocumentPreviewModal';
+import { SecureRecordForm, SecureSendConfirmation, EncryptionPipelineAnimation } from './pqc-animation';
 
 interface LabAssistantDashboardProps {
   user: UserProfile;
@@ -49,6 +50,10 @@ export const LabAssistantDashboard: React.FC<LabAssistantDashboardProps> = ({
   const [impression, setImpression] = useState('');
   const [encrypting, setEncrypting] = useState(false);
   const [successNotice, setSuccessNotice] = useState(false);
+  const [showLabRecordForm, setShowLabRecordForm] = useState(false);
+  const [showLabPreSendPreview, setShowLabPreSendPreview] = useState(false);
+  const [showEncryptionModal, setShowEncryptionModal] = useState(false);
+  const [pendingReportData, setPendingReportData] = useState<any>(null);
 
   // Document Upload State
   const [documents, setDocuments] = useState<MedicalDocument[]>(initialDocuments || []);
@@ -97,61 +102,113 @@ export const LabAssistantDashboard: React.FC<LabAssistantDashboardProps> = ({
     e.preventDefault();
     if (!selectedOrder) return;
 
-    setEncrypting(true);
-
-    // Cryptographic lattice encapsulation & signing delay simulation
-    setTimeout(() => {
-      const generatedReport: MedicalReport = {
-        id: `rep-${Date.now().toString().slice(-4)}`,
-        orderId: selectedOrder.id,
-        patientId: selectedOrder.patientId,
-        patientName: selectedOrder.patientName,
-        doctorId: selectedOrder.doctorId,
-        doctorName: selectedOrder.doctorName,
-        technicianId: user.id,
-        technicianName: `${user.name} (NABL Certified)`,
-        testTitle: selectedOrder.testType,
-        specimenType,
-        createdAt: new Date().toISOString(),
-        decryptedData: {
-          summary: summary || 'Target biomarkers evaluated against clinical baselines.',
-          biomarkers: [
-            {
-              name: biomarker1Name,
-              value: biomarker1Val,
-              unit: biomarker1Unit,
-              referenceRange: biomarker1Range,
-              flag: 'normal'
-            }
-          ],
-          clinicalImpression: impression || 'Biomarker levels indicative of normal physiological profile.',
-          recommendations: 'Consult attending physician for correlation with clinical findings.'
-        },
-        cryptoEnvelope: {
-          algorithmKem: 'ML-KEM-768 (NIST FIPS 203)',
-          algorithmSymmetric: 'AES-256-GCM (NIST SP 800-38D)',
-          algorithmSignature: 'ML-DSA-65 (NIST FIPS 204)',
-          ciphertext: `CT_${Math.random().toString(36).substring(2, 15)}...${Math.random().toString(36).substring(2, 15)}==`,
-          iv: '9bK2+mOp84/qZ9==',
-          authTag: '7k92M/a7901Lwe==',
-          kemCiphertextDoctor: `KEM768_DOC_${selectedOrder.doctorId.slice(0, 6)}_${Math.random().toString(36).substring(2, 8)}`,
-          kemCiphertextPatient: `KEM768_PAT_${selectedOrder.patientId.slice(0, 6)}_${Math.random().toString(36).substring(2, 8)}`,
-          pqcSignature: `MLDSA65_SIG_${user.id}_${Math.random().toString(36).substring(2, 18)}`,
-          signerPublicKey: user.pqcDsaPublicKey || 'MLDSA65-PUB-VERMA-9921',
-          verified: true
+    const reportPayload = {
+      summary: summary || 'Target biomarkers evaluated against clinical baselines.',
+      biomarkers: [
+        {
+          name: biomarker1Name,
+          value: biomarker1Val,
+          unit: biomarker1Unit,
+          referenceRange: biomarker1Range,
+          flag: 'normal'
         }
-      };
+      ],
+      clinicalImpression: impression || 'Biomarker levels indicative of normal physiological profile.',
+      recommendations: 'Consult attending physician for correlation with clinical findings.'
+    };
 
-      onSubmitReport(generatedReport);
-      onUpdateOrderStatus(selectedOrder.id, 'completed');
-      setEncrypting(false);
-      setSuccessNotice(true);
+    setPendingReportData({
+      order: selectedOrder,
+      specimenType,
+      payload: reportPayload,
+      recordReference: `REP-PQC-${Date.now().toString().slice(-6)}`,
+      summary: {
+        title: selectedOrder.testType,
+        itemsCount: reportPayload.biomarkers.length,
+        clinicalSummary: `${selectedOrder.testType} for specimen (${specimenType}). ${reportPayload.clinicalImpression}`
+      }
+    });
+    setShowLabPreSendPreview(true);
+  };
 
-      setTimeout(() => {
-        setSuccessNotice(false);
-        setSelectedOrder(null);
-      }, 1500);
-    }, 1000);
+  const handleLabRecordFormSubmit = (formData: any) => {
+    setPendingReportData({
+      order: {
+        id: `ord-${Date.now().toString().slice(-4)}`,
+        patientId: formData.recipientId,
+        patientName: formData.recipientName,
+        doctorId: 'doc-101',
+        doctorName: 'Dr. Vikramaditya Sen',
+        testType: formData.recordType,
+        priority: 'urgent',
+        status: 'completed',
+        createdAt: new Date().toISOString()
+      },
+      specimenType: 'Venous Whole Blood & Serum',
+      payload: {
+        summary: formData.diagnosisOrTest,
+        clinicalImpression: formData.clinicalNotes,
+        biomarkers: formData.biomarkers,
+        recommendations: formData.recommendations
+      },
+      recordReference: `REP-PQC-${Date.now().toString().slice(-6)}`,
+      summary: {
+        title: formData.recordType,
+        itemsCount: formData.biomarkers.length,
+        clinicalSummary: `${formData.diagnosisOrTest}. ${formData.clinicalNotes}`
+      }
+    });
+    setShowLabRecordForm(false);
+    setShowLabPreSendPreview(true);
+  };
+
+  const handleLabConfirmEncrypt = () => {
+    setShowLabPreSendPreview(false);
+    setShowEncryptionModal(true);
+  };
+
+  const handleEncryptionComplete = (backendData: any) => {
+    if (!pendingReportData) return;
+    const { order, specimenType, payload } = pendingReportData;
+
+    const generatedReport: MedicalReport = {
+      id: backendData.record_id || `rep-${Date.now().toString().slice(-4)}`,
+      orderId: order.id,
+      patientId: order.patientId,
+      patientName: order.patientName,
+      doctorId: order.doctorId,
+      doctorName: order.doctorName,
+      technicianId: user.id,
+      technicianName: `${user.name} (NABL Certified)`,
+      testTitle: order.testType,
+      specimenType,
+      createdAt: new Date().toISOString(),
+      decryptedData: payload,
+      cryptoEnvelope: {
+        algorithmKem: 'ML-KEM-768 (NIST FIPS 203)',
+        algorithmSymmetric: 'AES-256-GCM (NIST SP 800-38D)',
+        algorithmSignature: 'ML-DSA-65 (NIST FIPS 204)',
+        ciphertext: backendData.crypto_envelope?.ciphertext || 'CT_SECURED_PAYLOAD==',
+        iv: backendData.crypto_envelope?.iv || '9bK2+mOp84/qZ9==',
+        authTag: backendData.crypto_envelope?.authTag || '7k92M/a7901Lwe==',
+        kemCiphertext: backendData.crypto_envelope?.kemCiphertext,
+        kemCiphertextDoctor: backendData.crypto_envelope?.kemCiphertext || `KEM768_DOC_${order.doctorId.slice(0, 6)}`,
+        kemCiphertextPatient: backendData.crypto_envelope?.kemCiphertext || `KEM768_PAT_${order.patientId.slice(0, 6)}`,
+        pqcSignature: backendData.crypto_envelope?.pqcSignature || `MLDSA65_SIG_${user.id}`,
+        signerPublicKey: backendData.crypto_envelope?.signerPublicKey || user.pqcDsaPublicKey || 'MLDSA65-PUB-VERMA-9921',
+        associatedData: backendData.crypto_envelope?.associatedData || '',
+        verified: true
+      }
+    };
+
+    onSubmitReport(generatedReport);
+    onUpdateOrderStatus(order.id, 'completed');
+    setSuccessNotice(true);
+
+    setTimeout(() => {
+      setSuccessNotice(false);
+      setSelectedOrder(null);
+    }, 1500);
   };
 
   // Image Upload Handlers
@@ -283,14 +340,24 @@ export const LabAssistantDashboard: React.FC<LabAssistantDashboardProps> = ({
             </div>
           </div>
 
-          <div className="bg-slate-900/80 p-4 rounded-2xl border border-teal-500/30 text-xs space-y-1 self-start md:self-auto max-w-xs">
-            <div className="flex items-center space-x-2 text-teal-300 font-bold">
-              <Lock className="w-4 h-4 text-teal-400" />
-              <span>NIST Post-Quantum Pipeline</span>
+          <div className="flex flex-col gap-2.5 self-start md:self-auto max-w-xs">
+            <button
+              type="button"
+              onClick={() => setShowLabRecordForm(true)}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-400 hover:from-teal-400 hover:to-cyan-300 text-slate-950 font-bold text-xs uppercase tracking-wider shadow-md shadow-teal-500/20 transition-all flex items-center space-x-2 cursor-pointer"
+            >
+              <FlaskConical className="w-4 h-4" />
+              <span>Send Confidential Lab Result (PQC)</span>
+            </button>
+            <div className="bg-slate-900/80 p-3 rounded-xl border border-teal-500/30 text-xs space-y-1">
+              <div className="flex items-center space-x-2 text-teal-300 font-bold">
+                <Lock className="w-3.5 h-3.5 text-teal-400" />
+                <span>NIST Post-Quantum Pipeline</span>
+              </div>
+              <p className="text-[10px] text-slate-300">
+                ML-KEM-768 session encapsulation + AES-256-GCM + ML-DSA-65 tamper-evident digital signatures.
+              </p>
             </div>
-            <p className="text-[11px] text-slate-300">
-              ML-KEM-768 session encapsulation + AES-256-GCM + ML-DSA-65 tamper-evident digital signatures.
-            </p>
           </div>
         </div>
 
@@ -847,6 +914,58 @@ export const LabAssistantDashboard: React.FC<LabAssistantDashboardProps> = ({
         <DocumentPreviewModal
           document={selectedDocForPreview}
           onClose={() => setSelectedDocForPreview(null)}
+        />
+      )}
+
+      {/* 1. Lab Confidential Medical Record Form Modal */}
+      {showLabRecordForm && (
+        <SecureRecordForm
+          isOpen={showLabRecordForm}
+          onClose={() => setShowLabRecordForm(false)}
+          onSubmitForPreview={handleLabRecordFormSubmit}
+          senderRole="lab_technician"
+          currentUser={user}
+          authorizedPatients={Array.from(new Map(labOrders.map(o => [o.patientId, { id: o.patientId, name: o.patientName }])).values())}
+          initialData={{
+            recordType: 'Diagnostic Laboratory Test Report'
+          }}
+        />
+      )}
+
+      {/* 2. Lab Pre-Send Cryptographic Preview Confirmation */}
+      {showLabPreSendPreview && pendingReportData && (
+        <SecureSendConfirmation
+          isOpen={showLabPreSendPreview}
+          onClose={() => setShowLabPreSendPreview(false)}
+          onConfirm={handleLabConfirmEncrypt}
+          senderName={user.name}
+          senderRole="lab_technician"
+          senderDepartment="Diagnostic Pathology &amp; Molecular Lab"
+          recipientName={pendingReportData.order.patientName}
+          recipientId={pendingReportData.order.patientId}
+          recordType={pendingReportData.order.testType}
+          recordReference={pendingReportData.recordReference || 'REP-PQC-2026-9481'}
+          payloadSummary={pendingReportData.summary || {
+            title: pendingReportData.order.testType,
+            itemsCount: pendingReportData.payload.biomarkers?.length || 3,
+            clinicalSummary: pendingReportData.payload.clinicalImpression || 'Diagnostic laboratory analysis'
+          }}
+        />
+      )}
+
+      {/* 3. Dedicated Post-Quantum Encryption Pipeline Modal */}
+      {showEncryptionModal && pendingReportData && (
+        <EncryptionPipelineAnimation
+          isOpen={showEncryptionModal}
+          onClose={() => setShowEncryptionModal(false)}
+          senderId={user.id}
+          senderName={user.name}
+          senderRole="lab_technician"
+          recipientId={pendingReportData.order.patientId}
+          recipientName={pendingReportData.order.patientName}
+          recordType={pendingReportData.order.testType}
+          payload={pendingReportData.payload}
+          onComplete={handleEncryptionComplete}
         />
       )}
     </div>

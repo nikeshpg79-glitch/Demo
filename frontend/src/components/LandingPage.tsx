@@ -13,7 +13,6 @@ import {
   AlertTriangle,
   Zap,
   Building2,
-  Sparkles,
   CheckCircle2,
   Activity
 } from 'lucide-react';
@@ -21,11 +20,11 @@ import { UserRole } from '../types';
 import { DoctorPatientIllustration, QuantumShieldIllustration } from './illustrations/MedicalIllustrations';
 
 interface LandingPageProps {
-  onSelectRole: (role: UserRole) => void;
+  onOpenPortalAuth: (portal: UserRole) => void;
   onNavigate: (tab: string) => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onNavigate }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onOpenPortalAuth, onNavigate }) => {
   return (
     <div className="space-y-14 pb-16">
       
@@ -39,11 +38,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onNaviga
           
           {/* Hero Left Content */}
           <div className="lg:col-span-7 space-y-6">
-            <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-semibold uppercase tracking-wider backdrop-blur-sm">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-              <span>Smart India Hackathon • Problem PQC-04</span>
-            </div>
-
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.15]">
               Quantum-Resistant <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-teal-200 to-violet-300">
@@ -58,10 +52,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onNaviga
 
             <div className="flex flex-wrap gap-3.5 pt-2">
               <button
-                onClick={() => {
-                  onSelectRole('patient');
-                  onNavigate('dashboard');
-                }}
+                onClick={() => onOpenPortalAuth('patient')}
                 className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 via-teal-400 to-emerald-400 hover:opacity-95 text-slate-950 font-bold text-sm shadow-xl shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 flex items-center space-x-2 cursor-pointer"
               >
                 <span>Launch Patient Portal</span>
@@ -187,10 +178,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onNaviga
               </ul>
             </div>
             <button
-              onClick={() => {
-                onSelectRole('patient');
-                onNavigate('dashboard');
-              }}
+              onClick={() => onOpenPortalAuth('patient')}
               className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-[#0A192F] to-[#0E345A] hover:opacity-95 text-cyan-300 font-bold text-xs tracking-wide transition-all shadow-md flex items-center justify-center space-x-2 cursor-pointer"
             >
               <span>Enter Patient Portal</span>
@@ -225,10 +213,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onNaviga
               </ul>
             </div>
             <button
-              onClick={() => {
-                onSelectRole('doctor');
-                onNavigate('dashboard');
-              }}
+              onClick={() => onOpenPortalAuth('doctor')}
               className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-[#0A192F] to-[#0E345A] hover:opacity-95 text-blue-300 font-bold text-xs tracking-wide transition-all shadow-md flex items-center justify-center space-x-2 cursor-pointer"
             >
               <span>Enter Doctor Dashboard</span>
@@ -263,10 +248,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectRole, onNaviga
               </ul>
             </div>
             <button
-              onClick={() => {
-                onSelectRole('lab_technician');
-                onNavigate('dashboard');
-              }}
+              onClick={() => onOpenPortalAuth('lab_technician')}
               className="mt-6 w-full py-3 rounded-2xl bg-gradient-to-r from-[#0A192F] to-[#0E345A] hover:opacity-95 text-teal-300 font-bold text-xs tracking-wide transition-all shadow-md flex items-center justify-center space-x-2 cursor-pointer"
             >
               <span>Enter Lab Station</span>

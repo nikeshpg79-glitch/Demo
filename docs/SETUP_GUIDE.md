@@ -1,4 +1,4 @@
-# PQC-04: Setup and Local Development Guide
+# PQC-HEALTH: Setup and Local Development Guide
 
 This guide provides exact step-by-step instructions for running the Quantum-Secure Hospital-to-Laboratory Data Exchange system locally on Windows PowerShell.
 

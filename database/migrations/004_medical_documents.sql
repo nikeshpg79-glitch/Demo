@@ -1,6 +1,6 @@
 -- =====================================================================
 -- CANONICAL MIGRATION: 004_medical_documents.sql
--- PQC-04: Medical Documents & Imaging Storage with PQC Integrity
+-- PQC: Medical Documents & Imaging Storage with PQC Integrity
 -- =====================================================================
 
 -- 1. Create Private Storage Bucket 'medical-documents' (if storage extension is active)

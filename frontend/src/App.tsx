@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { Navbar } from './components/Navbar';
+import { Sidebar } from './components/Sidebar';
 import { LandingPage } from './components/LandingPage';
+import { AccessDeniedView } from './components/AccessDeniedView';
+import { AuthModal } from './components/AuthModal';
+import { KeyRound } from 'lucide-react';
 import { DoctorDirectory } from './components/DoctorDirectory';
 import { AppointmentModal } from './components/AppointmentModal';
 import { PatientDashboard } from './components/PatientDashboard';
@@ -12,13 +15,27 @@ import { QuantumSecurityDashboard } from './components/QuantumSecurityDashboard'
 import { SecureTransmissionVisualizer } from './components/SecureTransmissionVisualizer';
 import { AdministratorDashboard } from './components/AdministratorDashboard';
 
-import { Doctor, Appointment, LabOrder, MedicalReport, MedicalDocument } from './types';
+import { Doctor, Appointment, LabOrder, MedicalReport, MedicalDocument, UserRole } from './types';
 import { dbService } from './lib/dbService';
 
 function MainApp() {
-  const { currentRole, profile, switchMockRole } = useAuth();
+  const { currentRole, profile, isAuthenticated, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('landing');
   const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState<Doctor | null>(null);
+  
+  // Dedicated Portal Authentication State
+  const [authModalTargetPortal, setAuthModalTargetPortal] = useState<UserRole>('patient');
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+
+  const handleOpenPortalAuth = (portalRole: UserRole = 'patient') => {
+    const target = portalRole || 'patient';
+    if (isAuthenticated && profile?.role === target) {
+      setActiveTab('dashboard');
+    } else {
+      setAuthModalTargetPortal(target);
+      setShowAuthModal(true);
+    }
+  };
 
   // Application Data States
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -55,7 +72,8 @@ function MainApp() {
   useEffect(() => {
     const checkBackend = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:8000/api/health', { method: 'GET' });
+        const apiBase = import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api';
+        const res = await fetch(`${apiBase}/health`, { method: 'GET' });
         setBackendOnline(res.ok);
       } catch {
         setBackendOnline(false);
@@ -116,7 +134,7 @@ function MainApp() {
   };
 
   return (
-    <div className="min-h-screen animated-gradient-mesh flex flex-col font-sans text-slate-900 relative overflow-x-hidden">
+    <div className="min-h-screen animated-gradient-mesh flex flex-col md:flex-row font-sans text-slate-900 relative overflow-x-hidden">
       
       {/* Decorative Ambient Background Orbs */}
       <div className="fixed top-12 left-10 w-96 h-96 rounded-full bg-cyan-400/15 blur-3xl pointer-events-none animate-float" />
@@ -124,20 +142,22 @@ function MainApp() {
       <div className="fixed bottom-10 left-1/4 w-80 h-80 rounded-full bg-teal-400/15 blur-3xl pointer-events-none animate-float" />
       <div className="fixed bottom-1/4 right-1/4 w-72 h-72 rounded-full bg-rose-400/10 blur-3xl pointer-events-none animate-float-reverse" />
 
-      {/* Top Navbar */}
-      <Navbar
+      {/* Vertical Sidebar Navigation (Left Edge) */}
+      <Sidebar
         activeTab={activeTab}
         onTabChange={(tab) => setActiveTab(tab)}
         backendOnline={backendOnline}
+        onOpenPortalAuth={handleOpenPortalAuth}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      {/* Main Page Area (To the right of sidebar) */}
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen pt-14 md:pt-0">
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         
         {/* Landing Page */}
         {activeTab === 'landing' && (
           <LandingPage
-            onSelectRole={(role) => switchMockRole(role)}
+            onOpenPortalAuth={handleOpenPortalAuth}
             onNavigate={(tab) => setActiveTab(tab)}
           />
         )}
@@ -150,10 +170,42 @@ function MainApp() {
           />
         )}
 
-        {/* Role-Specific Dashboards */}
+        {/* Role-Specific Dashboards with Strict RBAC */}
         {activeTab === 'dashboard' && (
           <>
-            {currentRole === 'patient' && (
+            {!isAuthenticated && (
+              <div className="bg-[#0A192F] text-white p-8 rounded-3xl border border-teal-500/30 text-center max-w-xl mx-auto space-y-4 my-10 shadow-2xl">
+                <div className="w-16 h-16 rounded-2xl bg-teal-500/20 border border-teal-400/40 flex items-center justify-center mx-auto text-teal-300">
+                  <KeyRound className="w-8 h-8" />
+                </div>
+                <h3 className="text-2xl font-bold">Portal Authentication Required</h3>
+                <p className="text-xs text-slate-300 leading-relaxed max-w-md mx-auto">
+                  Select your authorized healthcare portal to authenticate with zero-trust post-quantum security credentials.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">
+                  <button
+                    onClick={() => handleOpenPortalAuth('patient')}
+                    className="p-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
+                  >
+                    Patient Portal
+                  </button>
+                  <button
+                    onClick={() => handleOpenPortalAuth('doctor')}
+                    className="p-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
+                  >
+                    Doctor Portal
+                  </button>
+                  <button
+                    onClick={() => handleOpenPortalAuth('lab_technician')}
+                    className="p-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
+                  >
+                    Lab Portal
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {isAuthenticated && currentRole === 'patient' && (
               <PatientDashboard
                 user={currentUser}
                 appointments={appointments.filter((a) => a.patientId === currentUser.id)}
@@ -165,7 +217,7 @@ function MainApp() {
               />
             )}
 
-            {currentRole === 'doctor' && (
+            {isAuthenticated && currentRole === 'doctor' && (
               <DoctorDashboard
                 user={currentUser}
                 appointments={appointments.filter((a) => a.doctorId === currentUser.id)}
@@ -177,7 +229,7 @@ function MainApp() {
               />
             )}
 
-            {currentRole === 'lab_technician' && (
+            {isAuthenticated && currentRole === 'lab_technician' && (
               <LabAssistantDashboard
                 user={currentUser}
                 labOrders={labOrders}
@@ -188,15 +240,27 @@ function MainApp() {
               />
             )}
 
-            {currentRole === 'admin' && (
+            {isAuthenticated && currentRole === 'admin' && (
               <AdministratorDashboard />
             )}
           </>
         )}
 
-        {/* PQC Reports View */}
+        {/* PQC Reports View (Guarded to Patients & Doctors) */}
         {activeTab === 'reports' && (
-          <MedicalReportsView reports={reports} />
+          currentRole === 'patient' || currentRole === 'doctor' ? (
+            <MedicalReportsView reports={reports} />
+          ) : (
+            <AccessDeniedView
+              currentRole={currentRole}
+              requiredRole="Patient or Attending Physician"
+              onNavigateHome={() => setActiveTab('dashboard')}
+              onSignOut={async () => {
+                await signOut();
+                handleOpenPortalAuth('patient');
+              }}
+            />
+          )
         )}
 
         {/* Secure Transmission Path Visualizer */}
@@ -212,9 +276,21 @@ function MainApp() {
           <QuantumSecurityDashboard backendOnline={backendOnline} />
         )}
 
-        {/* Administrator Defensive Security Intel Console */}
+        {/* Administrator Defensive Security Intel Console (Guarded to Admins Only) */}
         {activeTab === 'admin' && (
-          <AdministratorDashboard />
+          currentRole === 'admin' ? (
+            <AdministratorDashboard />
+          ) : (
+            <AccessDeniedView
+              currentRole={currentRole}
+              requiredRole="Security Administrator"
+              onNavigateHome={() => setActiveTab('dashboard')}
+              onSignOut={async () => {
+                await signOut();
+                handleOpenPortalAuth('admin');
+              }}
+            />
+          )
         )}
 
       </main>
@@ -228,19 +304,30 @@ function MainApp() {
         />
       )}
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© 2026 PQC-HEALTH • Smart India Hackathon Problem Statement PQC-04</p>
-          <div className="flex items-center space-x-4 text-xs font-mono">
-            <span className="text-teal-700 font-bold">NIST FIPS 203 (ML-KEM-768)</span>
-            <span>•</span>
-            <span className="text-teal-700 font-bold">NIST FIPS 204 (ML-DSA-65)</span>
-            <span>•</span>
-            <span className="text-slate-600 font-semibold">QpiAI SDK v0.7.5</span>
+      {/* Three Separate Authenticated Portals Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialPortal={authModalTargetPortal}
+        onSuccessRedirect={(role) => {
+          setActiveTab('dashboard');
+        }}
+      />
+
+        {/* Footer */}
+        <footer className="bg-white/80 backdrop-blur-sm border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-auto">
+          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p>© 2026 PQC-HEALTH • Quantum-Secure Hospital-to-Laboratory Data Exchange</p>
+            <div className="flex items-center space-x-4 text-xs font-mono">
+              <span className="text-teal-700 font-bold">NIST FIPS 203 (ML-KEM-768)</span>
+              <span>•</span>
+              <span className="text-teal-700 font-bold">NIST FIPS 204 (ML-DSA-65)</span>
+              <span>•</span>
+              <span className="text-slate-600 font-semibold">QpiAI SDK v0.7.5</span>
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
 
     </div>
   );

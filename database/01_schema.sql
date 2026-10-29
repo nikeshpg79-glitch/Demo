@@ -1,7 +1,7 @@
 -- =====================================================================
 -- CANONICAL MIGRATION ALIAS: 001_initial_schema.sql
 -- (Mirror of database/migrations/001_initial_schema.sql)
--- PQC-04: Quantum-Secure Hospital-to-Laboratory Data Exchange
+-- PQC: Quantum-Secure Hospital-to-Laboratory Data Exchange
 -- =====================================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

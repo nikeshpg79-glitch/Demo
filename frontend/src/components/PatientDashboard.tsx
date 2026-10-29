@@ -16,6 +16,7 @@ import {
   Download,
   Filter,
   Lock,
+  Unlock,
   Search,
   Sparkles,
   HeartPulse,
@@ -26,6 +27,7 @@ import {
 import { Appointment, LabOrder, MedicalReport, UserProfile, MedicalDocument } from '../types';
 import { dbService } from '../lib/dbService';
 import { DocumentPreviewModal } from './DocumentPreviewModal';
+import { DecryptionTimelineModal } from './pqc-animation/DecryptionTimelineModal';
 import { MedicalEmptyIllustration } from './illustrations/MedicalIllustrations';
 
 interface PatientDashboardProps {
@@ -52,6 +54,8 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
   const [selectedDocForPreview, setSelectedDocForPreview] = useState<MedicalDocument | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showDecryptionModal, setShowDecryptionModal] = useState<boolean>(false);
+  const [selectedReportForDecryption, setSelectedReportForDecryption] = useState<MedicalReport | null>(null);
 
   // Fetch patient-specific documents
   useEffect(() => {
@@ -344,13 +348,26 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                       </div>
                     )}
 
-                    <button
-                      onClick={() => onViewReport(rep)}
-                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#0A192F] to-[#1E293B] hover:from-slate-800 hover:to-slate-900 text-teal-300 font-semibold text-xs flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-sm"
-                    >
-                      <span>Inspect Cryptographic Envelope</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      <button
+                        onClick={() => {
+                          setSelectedReportForDecryption(rep);
+                          setShowDecryptionModal(true);
+                        }}
+                        className="py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:opacity-95 text-slate-950 font-bold text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-md shadow-teal-500/20"
+                      >
+                        <Unlock className="w-3.5 h-3.5" />
+                        <span>Decrypt &amp; View Record</span>
+                      </button>
+
+                      <button
+                        onClick={() => onViewReport(rep)}
+                        className="py-2.5 rounded-xl bg-[#0A192F] hover:bg-slate-800 text-teal-300 font-semibold text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer border border-slate-700"
+                      >
+                        <span>PQC Inspector</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -500,6 +517,23 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
         <DocumentPreviewModal
           document={selectedDocForPreview}
           onClose={() => setSelectedDocForPreview(null)}
+        />
+      )}
+
+      {/* Patient Cryptographic Decryption Timeline Modal */}
+      {showDecryptionModal && selectedReportForDecryption && (
+        <DecryptionTimelineModal
+          isOpen={showDecryptionModal}
+          onClose={() => {
+            setShowDecryptionModal(false);
+            setSelectedReportForDecryption(null);
+          }}
+          recordId={selectedReportForDecryption.id}
+          recipientId={user.id}
+          recipientRole="patient"
+          senderName={selectedReportForDecryption.doctorName || selectedReportForDecryption.technicianName}
+          senderRole="doctor"
+          cryptoEnvelope={selectedReportForDecryption.cryptoEnvelope}
         />
       )}
 

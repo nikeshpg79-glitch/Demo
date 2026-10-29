@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -9,7 +10,7 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     description="""
-    ## SIH Problem Statement PQC-04
+    ## Quantum-Secure Hospital-to-Laboratory Data Exchange
     **Long-Term Confidentiality in Hospital-to-Laboratory Data Exchange**
     
     This backend provides quantum-resistant cryptographic services:
@@ -73,4 +74,5 @@ app.include_router(security.router, prefix=f"{settings.API_PREFIX}/security")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+    port = int(os.getenv("PORT", 8001))
+    uvicorn.run("app.main:app", host="127.0.0.1", port=port, reload=True)

@@ -88,6 +88,8 @@ export interface MedicalReport {
     kemCiphertextPatient: string; // Base64
     pqcSignature: string; // Base64
     signerPublicKey: string; // Base64
+    associatedData?: string;
+    kemCiphertext?: string;
     verified: boolean;
   };
 }

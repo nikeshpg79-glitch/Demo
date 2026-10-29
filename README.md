@@ -1,5 +1,5 @@
-# PQC-04: Quantum-Secure Hospital-to-Laboratory Data Exchange
-> **Smart India Hackathon • Problem Statement PQC-04**
+# PQC-HEALTH: Quantum-Secure Hospital-to-Laboratory Data Exchange
+> **NIST Post-Quantum Cryptography Architecture**
 > **Theme:** Long-Term Confidentiality in Hospital-to-Laboratory Data Exchange
 
 ---

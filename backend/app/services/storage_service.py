@@ -109,7 +109,8 @@ class StorageService:
 
         if not signed_url:
             # Local URL served by FastAPI backend
-            signed_url = f"http://127.0.0.1:8000/api/documents/raw/{storage_path}"
+            port = os.getenv("PORT", "8001")
+            signed_url = f"http://127.0.0.1:{port}/api/documents/raw/{storage_path}"
 
         return {
             "storage_path": storage_path,
@@ -145,7 +146,8 @@ class StorageService:
                 print(f"[StorageService] Failed generating remote signed URL: {e}")
 
         # Local signed fallback
-        return f"http://127.0.0.1:8000/api/documents/raw/{storage_path}"
+        port = os.getenv("PORT", "8001")
+        return f"http://127.0.0.1:{port}/api/documents/raw/{storage_path}"
 
     def get_local_file_path(self, storage_path: str) -> Optional[str]:
         """Returns physical path if file exists locally."""

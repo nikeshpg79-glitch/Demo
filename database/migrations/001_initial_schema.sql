@@ -1,6 +1,6 @@
 -- =====================================================================
 -- CANONICAL MIGRATION: 001_initial_schema.sql
--- PQC-04: Quantum-Secure Hospital-to-Laboratory Data Exchange
+-- PQC: Quantum-Secure Hospital-to-Laboratory Data Exchange
 -- =====================================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

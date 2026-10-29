@@ -1,13 +1,13 @@
-# PQC-04: System Architecture & Cryptographic Specification
+# PQC-HEALTH: System Architecture & Cryptographic Specification
 
 ## 1. Executive Overview
-The **PQC-04** project addresses the critical vulnerability of modern healthcare communications: **Store Now, Decrypt Later (SNDL)**. Adversaries intercepting genomic profiles, blood biomarkers, and diagnostic notes encrypted with classical RSA or ECC can archive them today and decrypt them once cryptanalytically relevant quantum computers (CRQCs) running Shor's algorithm become operational.
+The **PQC-HEALTH** platform addresses the critical vulnerability of modern healthcare communications: **Store Now, Decrypt Later (SNDL)**. Adversaries intercepting genomic profiles, blood biomarkers, and diagnostic notes encrypted with classical RSA or ECC can archive them today and decrypt them once cryptanalytically relevant quantum computers (CRQCs) running Shor's algorithm become operational.
 
 ---
 
 ## 2. Cryptographic Stack
 
-| Primitive | Standard | Key Parameters | Function in PQC-04 |
+| Primitive | Standard | Key Parameters | Function in System |
 | :--- | :--- | :--- | :--- |
 | **ML-KEM-768** | NIST FIPS 203 | 1184-byte Public Key, 1088-byte Ciphertext | Quantum-resistant Key Encapsulation Mechanism (KEM) to exchange 256-bit symmetric secrets between lab and hospital. |
 | **AES-256-GCM** | NIST SP 800-38D | 256-bit Key, 96-bit IV, 128-bit Auth Tag | High-speed authenticated encryption of full biomarker panels and patient records. |

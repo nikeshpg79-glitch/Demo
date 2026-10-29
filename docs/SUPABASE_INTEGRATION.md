@@ -1,4 +1,4 @@
-# Supabase Integration Guide for PQC-04
+# Supabase Integration Guide for PQC-HEALTH
 
 Follow these exact steps to connect your Supabase database and enforce Row-Level Security:
 

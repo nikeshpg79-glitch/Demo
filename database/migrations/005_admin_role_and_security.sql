@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Migration 005: Administrator Role & Security Audit Isolation
--- PQC HealthSecure: SIH Problem Statement PQC-04
+-- PQC HealthSecure: Quantum-Secure Hospital-to-Laboratory Data Exchange
 -- =====================================================================
 
 -- 1. Extend user_role enum to support 'admin'

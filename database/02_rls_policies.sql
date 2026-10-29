@@ -1,7 +1,7 @@
 -- =====================================================================
 -- CANONICAL MIGRATION ALIAS: 002_row_level_security.sql
 -- (Mirror of database/migrations/002_row_level_security.sql)
--- PQC-04: Row-Level Security (RLS) & Deep Security Hardening
+-- PQC: Row-Level Security (RLS) & Deep Security Hardening
 -- =====================================================================
 
 -- 1. Enable RLS on all tables

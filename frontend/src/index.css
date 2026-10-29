@@ -196,3 +196,17 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   outline: 2px solid #0EA5E9;
   outline-offset: 2px;
 }
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+}
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
