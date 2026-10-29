@@ -70,18 +70,34 @@ function MainApp() {
 
   // Periodic health check for Python backend
   useEffect(() => {
+    let mounted = true;
     const checkBackend = async () => {
-      try {
-        const apiBase = import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api';
-        const res = await fetch(`${apiBase}/health`, { method: 'GET' });
-        setBackendOnline(res.ok);
-      } catch {
-        setBackendOnline(false);
+      const candidates = [
+        import.meta.env.VITE_BACKEND_API_URL ? `${import.meta.env.VITE_BACKEND_API_URL}/health` : null,
+        'http://127.0.0.1:8001/api/health',
+        'http://localhost:8001/api/health'
+      ].filter(Boolean) as string[];
+
+      for (const url of candidates) {
+        try {
+          const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(3000) });
+          if (res.ok) {
+            if (mounted) setBackendOnline(true);
+            return;
+          }
+        } catch {
+          // try next candidate
+        }
       }
+      if (mounted) setBackendOnline(false);
     };
+
     checkBackend();
-    const interval = setInterval(checkBackend, 15000);
-    return () => clearInterval(interval);
+    const interval = setInterval(checkBackend, 4000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   // Handlers
