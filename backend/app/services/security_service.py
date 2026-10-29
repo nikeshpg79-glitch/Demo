@@ -21,8 +21,8 @@ class SecurityService:
 
         # Configurable detection thresholds
         self.THRESHOLDS = {
-            "RATE_LIMIT_CRYPTO_PER_MIN": 30,       # 30 requests/min for PQC operations
-            "RATE_LIMIT_GLOBAL_PER_MIN": 120,      # 120 requests/min general API
+            "RATE_LIMIT_CRYPTO_PER_MIN": 150,       # 30 requests/min for PQC operations
+            "RATE_LIMIT_GLOBAL_PER_MIN": 300,      # 120 requests/min general API
             "BURST_THRESHOLD_PER_2SEC": 10,        # 10 reqs in 2 seconds = burst
             "FAILED_LOGINS_FOR_ALERT": 5,          # 5 failures in 60s triggers alert
             "FAILED_LOGIN_WINDOW_SEC": 60,
