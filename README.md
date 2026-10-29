@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # PQC-HEALTH: Quantum-Secure Hospital-to-Laboratory Data Exchange
 > **NIST Post-Quantum Cryptography Architecture**
 > **Theme:** Long-Term Confidentiality in Hospital-to-Laboratory Data Exchange
@@ -37,16 +36,13 @@ Apply the version-controlled SQL migrations in your Supabase project in numerica
 
 ## 2. Environment Setup (.env)
 
-Create a local `.env` file in the `frontend/` directory (excluded from Git):
+Local `.env` file in the `frontend/` directory:
 
 ```powershell
-# File location: c:\Users\Bhagya HG\OneDrive\Desktop\pqc-healthcare\frontend\.env
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-or-publishable-key
-VITE_BACKEND_API_URL=http://127.0.0.1:8000/api
+VITE_SUPABASE_URL=https://zmputwzxczdwbhkiramz.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_RaMhfF5qa-Mu8905yEHobg_6dwBiogb
+VITE_BACKEND_API_URL=http://127.0.0.1:8001/api
 ```
-
-> **Note:** If your Supabase dashboard provides a **publishable key** (`sb_pub_...`), assign it to `VITE_SUPABASE_ANON_KEY` as both are fully supported by the client.
 
 ---
 
@@ -54,7 +50,7 @@ VITE_BACKEND_API_URL=http://127.0.0.1:8000/api
 
 ### Frontend (React + Vite)
 ```powershell
-cd "c:\Users\Bhagya HG\OneDrive\Desktop\pqc-healthcare\frontend"
+cd frontend
 npm install
 npm run dev
 ```
@@ -63,12 +59,12 @@ npm run dev
 
 ### Backend (FastAPI PQC Microservice)
 ```powershell
-cd "c:\Users\Bhagya HG\OneDrive\Desktop\pqc-healthcare\backend"
+cd backend
 python -m pip install -r requirements.txt
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
 ```
-* **API Health Check:** [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health)
-* **Swagger API Documentation:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+* **API Health Check:** [http://127.0.0.1:8001/api/health](http://127.0.0.1:8001/api/health)
+* **Swagger API Documentation:** [http://127.0.0.1:8001/docs](http://127.0.0.1:8001/docs)
 
 ---
 
@@ -78,8 +74,3 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
   * Doctor Demo Token: `HOSPITAL-DOC-2026`
   * Lab Assistant Demo Token: `LAB-ASSIST-2026`
 * **Zero Secret Exposure**: Secret keys, Supabase service-role keys, and private keys remain strictly on the backend/session layer and are never compiled into the frontend.
-# pqc-healthcare
-PQC HealthSecure - Secure healthcare data exchange using post-quantum cryptography
-=======
-# Demo
->>>>>>> 892a764958f3e15db6c9ab5ffc2f1bf0290f55a5
