@@ -39,10 +39,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [mode, setMode] = useState<'signin' | 'signup'>(defaultMode);
   const [selectedPortal, setSelectedPortal] = useState<UserRole>(initialPortal);
   
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [staffInviteCode, setStaffInviteCode] = useState('');
+  const [email, setEmail] = useState(() => DEMO_ACCOUNTS[initialPortal]?.email || DEMO_ACCOUNTS.patient.email);
+  const [password, setPassword] = useState(() => DEMO_ACCOUNTS[initialPortal]?.password || DEMO_ACCOUNTS.patient.password);
+  const [fullName, setFullName] = useState(() => DEMO_ACCOUNTS[initialPortal]?.name || DEMO_ACCOUNTS.patient.name);
+  const [staffInviteCode, setStaffInviteCode] = useState(() => {
+    if (initialPortal === 'doctor') return 'HOSPITAL-DOC-2026';
+    if (initialPortal === 'lab_technician') return 'LAB-ASSIST-2026';
+    if (initialPortal === 'admin') return 'HOSPITAL-ADMIN-2026';
+    return '';
+  });
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -50,14 +55,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const { signIn, signUp } = useAuth();
 
   useEffect(() => {
-    if (initialPortal) {
-      setSelectedPortal(initialPortal);
-      // Auto-populate demo email for ease of evaluation
-      const demo = DEMO_ACCOUNTS[initialPortal];
+    if (isOpen) {
+      const portal = initialPortal || 'patient';
+      setSelectedPortal(portal);
+      const demo = DEMO_ACCOUNTS[portal];
       if (demo) {
         setEmail(demo.email);
         setPassword(demo.password);
+        setFullName(demo.name);
       }
+      if (portal === 'doctor') {
+        setStaffInviteCode('HOSPITAL-DOC-2026');
+      } else if (portal === 'lab_technician') {
+        setStaffInviteCode('LAB-ASSIST-2026');
+      } else if (portal === 'admin') {
+        setStaffInviteCode('HOSPITAL-ADMIN-2026');
+      } else {
+        setStaffInviteCode('');
+      }
+      setErrorMessage(null);
+      setSuccessMessage(null);
     }
   }, [initialPortal, isOpen]);
 
@@ -84,8 +101,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleQuickDemoFill = (portal: UserRole) => {
-    handlePortalChange(portal);
+  const handleInstantDemoLogin = async (portal: UserRole) => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setSubmitting(true);
+    const demo = DEMO_ACCOUNTS[portal];
+    setEmail(demo.email);
+    setPassword(demo.password);
+    const res = await signIn(demo.email, demo.password, portal);
+    setSubmitting(false);
+    if (res.success) {
+      if (onSuccessRedirect) {
+        onSuccessRedirect(portal);
+      }
+      onClose();
+    } else {
+      setErrorMessage(res.error || 'Authentication failed.');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -271,18 +303,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
             </div>
 
-            {/* Quick Demo Fill One-Click Pill */}
-            <div className="mb-4 p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-              <span className="text-[11px] text-slate-500 font-medium truncate">
-                Demo Account: <strong className="text-slate-800">{DEMO_ACCOUNTS[selectedPortal]?.name}</strong>
-              </span>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoFill(selectedPortal)}
-                className="px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-[11px] shrink-0 transition-all cursor-pointer shadow-sm"
-              >
-                1-Click Load
-              </button>
+            {/* Default Demo Credentials Card */}
+            <div className="mb-4 p-3 rounded-2xl bg-gradient-to-r from-teal-50/90 via-slate-50 to-cyan-50/80 border border-teal-200/80 shadow-sm space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5">
+                  <span className="w-2 h-2 rounded-full bg-teal-500 animate-ping" />
+                  <span className="text-[11px] font-bold text-teal-950 uppercase tracking-wider">
+                    Default Credentials ({selectedPortal.toUpperCase()})
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleInstantDemoLogin(selectedPortal)}
+                  disabled={submitting}
+                  className="px-3 py-1 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-bold text-xs flex items-center space-x-1 transition-all cursor-pointer shadow-sm hover:shadow"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>1-Click Instant Login</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] font-mono border-t border-teal-100/80">
+                <div className="bg-white/80 p-1.5 rounded-lg border border-slate-200/70 truncate">
+                  <span className="text-slate-400 block text-[9px] uppercase font-sans font-bold">Email:</span>
+                  <span className="text-slate-800 font-semibold truncate block">{DEMO_ACCOUNTS[selectedPortal]?.email}</span>
+                </div>
+                <div className="bg-white/80 p-1.5 rounded-lg border border-slate-200/70 truncate">
+                  <span className="text-slate-400 block text-[9px] uppercase font-sans font-bold">Password:</span>
+                  <span className="text-slate-800 font-semibold truncate block">{DEMO_ACCOUNTS[selectedPortal]?.password}</span>
+                </div>
+              </div>
             </div>
 
             {/* Mode Switch (Sign In vs Sign Up) */}
