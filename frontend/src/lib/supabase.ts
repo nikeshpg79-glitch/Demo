@@ -62,6 +62,12 @@ export async function testSupabaseConnection(): Promise<{
         }
       }
 
+      if (!apiCandidates.includes('/api/health')) {
+        apiCandidates.push('/api/health');
+      }
+      if (!apiCandidates.includes('/health')) {
+        apiCandidates.push('/health');
+      }
       if (!apiCandidates.includes('http://127.0.0.1:8001/api/health')) {
         apiCandidates.push('http://127.0.0.1:8001/api/health');
       }

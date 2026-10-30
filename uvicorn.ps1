@@ -6,3 +6,4 @@ if (-not (Test-Path $venvPy)) {
     $venvPy = "python"
 }
 & $venvPy -m uvicorn @args
+

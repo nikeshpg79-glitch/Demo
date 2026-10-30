@@ -86,6 +86,12 @@ function MainApp() {
         }
       }
 
+      if (!candidates.includes('/api/health')) {
+        candidates.push('/api/health');
+      }
+      if (!candidates.includes('/health')) {
+        candidates.push('/health');
+      }
       if (!candidates.includes('http://127.0.0.1:8001/api/health')) {
         candidates.push('http://127.0.0.1:8001/api/health');
       }
