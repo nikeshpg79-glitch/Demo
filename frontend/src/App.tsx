@@ -81,7 +81,7 @@ function MainApp() {
       for (const url of candidates) {
         try {
           const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(3000) });
-          if (res.ok) {
+          if (res.ok || res.status === 429) {
             if (mounted) setBackendOnline(true);
             return;
           }

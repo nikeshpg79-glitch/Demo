@@ -217,6 +217,10 @@ class SecurityService:
         Safe sliding-window rate limiter per observed client IP.
         Returns (is_allowed, details_dict).
         """
+        # Health check endpoints are strictly exempt from rate limiting
+        if endpoint in ("/api/health", "/api/health/", "/health", "/"):
+            return True, {}
+
         now = time.time()
         is_crypto_endpoint = any(kw in endpoint for kw in ["/pqc/", "/encrypt", "/decrypt", "/verify", "/keygen", "/upload"])
         limit = self.THRESHOLDS["RATE_LIMIT_CRYPTO_PER_MIN"] if is_crypto_endpoint else self.THRESHOLDS["RATE_LIMIT_GLOBAL_PER_MIN"]

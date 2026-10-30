@@ -23,5 +23,11 @@ if __name__ == "__main__":
     print(f"Interactive API Documentation: http://127.0.0.1:{port}/docs")
     print(f"Health & Status Endpoint:     http://127.0.0.1:{port}/api/health")
     print("=" * 60)
-    uvicorn.run("app.main:app", host="127.0.0.1", port=port, reload=True, app_dir=backend_dir)
-
+    uvicorn.run(
+        "app.main:app", 
+        host="127.0.0.1", 
+        port=port, 
+        reload=True, 
+        reload_dirs=[backend_dir],
+        app_dir=backend_dir
+    )

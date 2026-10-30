@@ -112,6 +112,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
 
+    // Periodically re-verify connectivity every 6s so UI reflects live backend & DB status
+    const dbInterval = setInterval(checkDb, 6000);
+
     // Listen to Supabase Auth State changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, currentSession) => {
@@ -126,6 +129,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
 
     return () => {
+      clearInterval(dbInterval);
       subscription.unsubscribe();
     };
   }, []);

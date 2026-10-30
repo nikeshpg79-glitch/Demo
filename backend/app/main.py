@@ -45,8 +45,11 @@ app.add_middleware(
 # Defensive Rate Limiting & Observation Middleware
 @app.middleware("http")
 async def security_rate_limiting_middleware(request: Request, call_next):
-    # Only enforce on API paths (skip static docs, favicon, options preflight)
-    if request.method != "OPTIONS" and request.url.path.startswith("/api/"):
+    # Only enforce on API paths (skip static docs, favicon, options preflight, and health checks)
+    path = request.url.path
+    if request.method != "OPTIONS" and path.startswith("/api/"):
+        if path in ("/api/health", "/api/health/", "/health", "/"):
+            return await call_next(request)
         client_ip = security_service.resolve_source_ip(request)
         is_allowed, details = security_service.check_rate_limit(client_ip, request.url.path)
         if not is_allowed:
@@ -96,4 +99,4 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8001))
     print(f"Starting PQC HealthSecure Backend on http://127.0.0.1:{port} (docs: http://127.0.0.1:{port}/docs)")
-    uvicorn.run("app.main:app", host="127.0.0.1", port=port, reload=True, app_dir=_backend_dir)
+    uvicorn.run("app.main:app", host="127.0.0.1", port=port, reload=True, reload_dirs=[_backend_dir], app_dir=_backend_dir)
