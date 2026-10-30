@@ -84,7 +84,7 @@ export const DecryptionTimelineModal: React.FC<DecryptionTimelineModalProps> = (
     });
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api';
+      const backendUrl = (import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api').replace(/\/+$/, '');
       const res = await fetch(`${backendUrl}/pqc/record/decrypt-pipeline`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

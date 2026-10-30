@@ -398,7 +398,7 @@ export const dbService = {
    */
   async verifyReportSignature(report: MedicalReport): Promise<{ valid: boolean; message: string }> {
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api';
+      const backendUrl = (import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api').replace(/\/+$/, '');
       const res = await fetch(`${backendUrl}/pqc/report/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -442,7 +442,7 @@ export const dbService = {
    * Upload and cryptographically sign a patient medical document/report image
    */
   async uploadMedicalDocument(formData: FormData): Promise<{ success: boolean; data?: MedicalDocument; error?: string }> {
-    const backendUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api';
+    const backendUrl = (import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api').replace(/\/+$/, '');
     
     try {
       const res = await fetch(`${backendUrl}/documents/upload`, {
@@ -515,7 +515,7 @@ export const dbService = {
    */
   async getDocuments(role: string, userId: string, patientId?: string): Promise<MedicalDocument[]> {
     const targetPatientId = patientId || (role === 'patient' ? userId : undefined);
-    const backendUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api';
+    const backendUrl = (import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api').replace(/\/+$/, '');
 
     try {
       let endpoint = '';
@@ -583,7 +583,7 @@ export const dbService = {
    * Fetch documents bound to a specific lab test order
    */
   async getDocumentsByOrder(orderId: string): Promise<MedicalDocument[]> {
-    const backendUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api';
+    const backendUrl = (import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api').replace(/\/+$/, '');
     try {
       const res = await fetch(`${backendUrl}/documents/order/${orderId}`);
       if (res.ok) {

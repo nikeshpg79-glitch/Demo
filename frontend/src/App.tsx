@@ -22,7 +22,7 @@ function MainApp() {
   const { currentRole, profile, isAuthenticated, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('landing');
   const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState<Doctor | null>(null);
-  
+
   // Dedicated Portal Authentication State
   const [authModalTargetPortal, setAuthModalTargetPortal] = useState<UserRole>('patient');
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
@@ -72,15 +72,30 @@ function MainApp() {
   useEffect(() => {
     let mounted = true;
     const checkBackend = async () => {
-      const candidates = [
-        import.meta.env.VITE_BACKEND_API_URL ? `${import.meta.env.VITE_BACKEND_API_URL}/health` : null,
-        'http://127.0.0.1:8001/api/health',
-        'http://localhost:8001/api/health'
-      ].filter(Boolean) as string[];
+      const rawEnv = import.meta.env.VITE_BACKEND_API_URL || '';
+      const cleanEnv = rawEnv.replace(/\/+$/, '');
+      const candidates: string[] = [];
+
+      if (cleanEnv) {
+        if (cleanEnv.endsWith('/api')) {
+          candidates.push(`${cleanEnv}/health`);
+          candidates.push(`${cleanEnv.replace(/\/api$/, '')}/health`);
+        } else {
+          candidates.push(`${cleanEnv}/api/health`);
+          candidates.push(`${cleanEnv}/health`);
+        }
+      }
+
+      if (!candidates.includes('http://127.0.0.1:8001/api/health')) {
+        candidates.push('http://127.0.0.1:8001/api/health');
+      }
+      if (!candidates.includes('http://localhost:8001/api/health')) {
+        candidates.push('http://localhost:8001/api/health');
+      }
 
       for (const url of candidates) {
         try {
-          const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(3000) });
+          const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(2500) });
           if (res.ok || res.status === 429) {
             if (mounted) setBackendOnline(true);
             return;
@@ -151,7 +166,7 @@ function MainApp() {
 
   return (
     <div className="min-h-screen animated-gradient-mesh flex flex-col md:flex-row font-sans text-slate-900 relative overflow-x-hidden">
-      
+
       {/* Decorative Ambient Background Orbs */}
       <div className="fixed top-12 left-10 w-96 h-96 rounded-full bg-cyan-400/15 blur-3xl pointer-events-none animate-float" />
       <div className="fixed top-1/3 right-10 w-[28rem] h-[28rem] rounded-full bg-purple-400/15 blur-3xl pointer-events-none animate-float-reverse" />
@@ -169,166 +184,166 @@ function MainApp() {
       {/* Main Page Area (To the right of sidebar) */}
       <div className="flex-1 min-w-0 flex flex-col min-h-screen pt-14 md:pt-0">
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-        
-        {/* Landing Page */}
-        {activeTab === 'landing' && (
-          <LandingPage
-            onOpenPortalAuth={handleOpenPortalAuth}
-            onNavigate={(tab) => setActiveTab(tab)}
-          />
-        )}
 
-        {/* Doctor Directory */}
-        {activeTab === 'doctors' && (
-          <DoctorDirectory
-            doctors={doctors}
-            onBookDoctor={handleBookDoctor}
-          />
-        )}
+          {/* Landing Page */}
+          {activeTab === 'landing' && (
+            <LandingPage
+              onOpenPortalAuth={handleOpenPortalAuth}
+              onNavigate={(tab) => setActiveTab(tab)}
+            />
+          )}
 
-        {/* Role-Specific Dashboards with Strict RBAC */}
-        {activeTab === 'dashboard' && (
-          <>
-            {!isAuthenticated && (
-              <div className="bg-[#0A192F] text-white p-8 rounded-3xl border border-teal-500/30 text-center max-w-xl mx-auto space-y-4 my-10 shadow-2xl">
-                <div className="w-16 h-16 rounded-2xl bg-teal-500/20 border border-teal-400/40 flex items-center justify-center mx-auto text-teal-300">
-                  <KeyRound className="w-8 h-8" />
+          {/* Doctor Directory */}
+          {activeTab === 'doctors' && (
+            <DoctorDirectory
+              doctors={doctors}
+              onBookDoctor={handleBookDoctor}
+            />
+          )}
+
+          {/* Role-Specific Dashboards with Strict RBAC */}
+          {activeTab === 'dashboard' && (
+            <>
+              {!isAuthenticated && (
+                <div className="bg-[#0A192F] text-white p-8 rounded-3xl border border-teal-500/30 text-center max-w-xl mx-auto space-y-4 my-10 shadow-2xl">
+                  <div className="w-16 h-16 rounded-2xl bg-teal-500/20 border border-teal-400/40 flex items-center justify-center mx-auto text-teal-300">
+                    <KeyRound className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-2xl font-bold">Portal Authentication Required</h3>
+                  <p className="text-xs text-slate-300 leading-relaxed max-w-md mx-auto">
+                    Select your authorized healthcare portal to authenticate with zero-trust post-quantum security credentials.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">
+                    <button
+                      onClick={() => handleOpenPortalAuth('patient')}
+                      className="p-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
+                    >
+                      Patient Portal
+                    </button>
+                    <button
+                      onClick={() => handleOpenPortalAuth('doctor')}
+                      className="p-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
+                    >
+                      Doctor Portal
+                    </button>
+                    <button
+                      onClick={() => handleOpenPortalAuth('lab_technician')}
+                      className="p-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
+                    >
+                      Lab Portal
+                    </button>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold">Portal Authentication Required</h3>
-                <p className="text-xs text-slate-300 leading-relaxed max-w-md mx-auto">
-                  Select your authorized healthcare portal to authenticate with zero-trust post-quantum security credentials.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">
-                  <button
-                    onClick={() => handleOpenPortalAuth('patient')}
-                    className="p-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
-                  >
-                    Patient Portal
-                  </button>
-                  <button
-                    onClick={() => handleOpenPortalAuth('doctor')}
-                    className="p-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
-                  >
-                    Doctor Portal
-                  </button>
-                  <button
-                    onClick={() => handleOpenPortalAuth('lab_technician')}
-                    className="p-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
-                  >
-                    Lab Portal
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
 
-            {isAuthenticated && currentRole === 'patient' && (
-              <PatientDashboard
-                user={currentUser}
-                appointments={appointments.filter((a) => a.patientId === currentUser.id)}
-                labOrders={labOrders.filter((o) => o.patientId === currentUser.id)}
-                reports={reports.filter((r) => r.patientId === currentUser.id)}
-                documents={documents.filter((d) => d.patientId === currentUser.id)}
-                onBookAppointment={() => setActiveTab('doctors')}
-                onViewReport={() => setActiveTab('reports')}
+              {isAuthenticated && currentRole === 'patient' && (
+                <PatientDashboard
+                  user={currentUser}
+                  appointments={appointments.filter((a) => a.patientId === currentUser.id)}
+                  labOrders={labOrders.filter((o) => o.patientId === currentUser.id)}
+                  reports={reports.filter((r) => r.patientId === currentUser.id)}
+                  documents={documents.filter((d) => d.patientId === currentUser.id)}
+                  onBookAppointment={() => setActiveTab('doctors')}
+                  onViewReport={() => setActiveTab('reports')}
+                />
+              )}
+
+              {isAuthenticated && currentRole === 'doctor' && (
+                <DoctorDashboard
+                  user={currentUser}
+                  appointments={appointments.filter((a) => a.doctorId === currentUser.id)}
+                  labOrders={labOrders.filter((o) => o.doctorId === currentUser.id)}
+                  reports={reports.filter((r) => r.doctorId === currentUser.id)}
+                  documents={documents}
+                  onCreateLabOrder={handleCreateLabOrder}
+                  onViewReport={() => setActiveTab('reports')}
+                />
+              )}
+
+              {isAuthenticated && currentRole === 'lab_technician' && (
+                <LabAssistantDashboard
+                  user={currentUser}
+                  labOrders={labOrders}
+                  reports={reports}
+                  documents={documents}
+                  onSubmitReport={handleSubmitReport}
+                  onUpdateOrderStatus={handleUpdateOrderStatus}
+                />
+              )}
+
+              {isAuthenticated && currentRole === 'admin' && (
+                <AdministratorDashboard />
+              )}
+            </>
+          )}
+
+          {/* PQC Reports View (Guarded to Patients & Doctors) */}
+          {activeTab === 'reports' && (
+            currentRole === 'patient' || currentRole === 'doctor' ? (
+              <MedicalReportsView reports={reports} />
+            ) : (
+              <AccessDeniedView
+                currentRole={currentRole}
+                requiredRole="Patient or Attending Physician"
+                onNavigateHome={() => setActiveTab('dashboard')}
+                onSignOut={async () => {
+                  await signOut();
+                  handleOpenPortalAuth('patient');
+                }}
               />
-            )}
+            )
+          )}
 
-            {isAuthenticated && currentRole === 'doctor' && (
-              <DoctorDashboard
-                user={currentUser}
-                appointments={appointments.filter((a) => a.doctorId === currentUser.id)}
-                labOrders={labOrders.filter((o) => o.doctorId === currentUser.id)}
-                reports={reports.filter((r) => r.doctorId === currentUser.id)}
-                documents={documents}
-                onCreateLabOrder={handleCreateLabOrder}
-                onViewReport={() => setActiveTab('reports')}
-              />
-            )}
+          {/* Secure Transmission Path Visualizer */}
+          {activeTab === 'visualizer' && (
+            <SecureTransmissionVisualizer
+              currentRole={currentRole}
+              patientId={currentUser.id}
+            />
+          )}
 
-            {isAuthenticated && currentRole === 'lab_technician' && (
-              <LabAssistantDashboard
-                user={currentUser}
-                labOrders={labOrders}
-                reports={reports}
-                documents={documents}
-                onSubmitReport={handleSubmitReport}
-                onUpdateOrderStatus={handleUpdateOrderStatus}
-              />
-            )}
+          {/* Quantum Security Dashboard */}
+          {activeTab === 'security' && (
+            <QuantumSecurityDashboard backendOnline={backendOnline} />
+          )}
 
-            {isAuthenticated && currentRole === 'admin' && (
+          {/* Administrator Defensive Security Intel Console (Guarded to Admins Only) */}
+          {activeTab === 'admin' && (
+            currentRole === 'admin' ? (
               <AdministratorDashboard />
-            )}
-          </>
-        )}
+            ) : (
+              <AccessDeniedView
+                currentRole={currentRole}
+                requiredRole="Security Administrator"
+                onNavigateHome={() => setActiveTab('dashboard')}
+                onSignOut={async () => {
+                  await signOut();
+                  handleOpenPortalAuth('admin');
+                }}
+              />
+            )
+          )}
 
-        {/* PQC Reports View (Guarded to Patients & Doctors) */}
-        {activeTab === 'reports' && (
-          currentRole === 'patient' || currentRole === 'doctor' ? (
-            <MedicalReportsView reports={reports} />
-          ) : (
-            <AccessDeniedView
-              currentRole={currentRole}
-              requiredRole="Patient or Attending Physician"
-              onNavigateHome={() => setActiveTab('dashboard')}
-              onSignOut={async () => {
-                await signOut();
-                handleOpenPortalAuth('patient');
-              }}
-            />
-          )
-        )}
+        </main>
 
-        {/* Secure Transmission Path Visualizer */}
-        {activeTab === 'visualizer' && (
-          <SecureTransmissionVisualizer
-            currentRole={currentRole}
-            patientId={currentUser.id}
+        {/* Appointment Booking Modal */}
+        {selectedDoctorForBooking && (
+          <AppointmentModal
+            doctor={selectedDoctorForBooking}
+            onClose={() => setSelectedDoctorForBooking(null)}
+            onConfirm={handleConfirmAppointment}
           />
         )}
 
-        {/* Quantum Security Dashboard */}
-        {activeTab === 'security' && (
-          <QuantumSecurityDashboard backendOnline={backendOnline} />
-        )}
-
-        {/* Administrator Defensive Security Intel Console (Guarded to Admins Only) */}
-        {activeTab === 'admin' && (
-          currentRole === 'admin' ? (
-            <AdministratorDashboard />
-          ) : (
-            <AccessDeniedView
-              currentRole={currentRole}
-              requiredRole="Security Administrator"
-              onNavigateHome={() => setActiveTab('dashboard')}
-              onSignOut={async () => {
-                await signOut();
-                handleOpenPortalAuth('admin');
-              }}
-            />
-          )
-        )}
-
-      </main>
-
-      {/* Appointment Booking Modal */}
-      {selectedDoctorForBooking && (
-        <AppointmentModal
-          doctor={selectedDoctorForBooking}
-          onClose={() => setSelectedDoctorForBooking(null)}
-          onConfirm={handleConfirmAppointment}
+        {/* Three Separate Authenticated Portals Modal */}
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          initialPortal={authModalTargetPortal}
+          onSuccessRedirect={(role) => {
+            setActiveTab('dashboard');
+          }}
         />
-      )}
-
-      {/* Three Separate Authenticated Portals Modal */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        initialPortal={authModalTargetPortal}
-        onSuccessRedirect={(role) => {
-          setActiveTab('dashboard');
-        }}
-      />
 
         {/* Footer */}
         <footer className="bg-white/80 backdrop-blur-sm border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-auto">

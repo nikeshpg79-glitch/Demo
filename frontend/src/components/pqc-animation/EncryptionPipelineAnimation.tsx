@@ -87,7 +87,7 @@ export const EncryptionPipelineAnimation: React.FC<EncryptionPipelineAnimationPr
 
     try {
       // 1. Call backend to genuinely execute the PQC pipeline
-      const backendUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api';
+      const backendUrl = (import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api').replace(/\/+$/, '');
       const res = await fetch(`${backendUrl}/pqc/record/encrypt-pipeline`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

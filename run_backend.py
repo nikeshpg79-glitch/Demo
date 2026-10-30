@@ -17,14 +17,15 @@ from app.main import app
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8001))
+    host = os.getenv("HOST", "0.0.0.0" if os.getenv("RENDER") else "127.0.0.1")
     print("=" * 60)
-    print(f"Starting PQC HealthSecure Backend on http://127.0.0.1:{port}")
-    print(f"Interactive API Documentation: http://127.0.0.1:{port}/docs")
-    print(f"Health & Status Endpoint:     http://127.0.0.1:{port}/api/health")
+    print(f"Starting PQC HealthSecure Backend on http://{host}:{port}")
+    print(f"Interactive API Documentation: http://{host}:{port}/docs")
+    print(f"Health & Status Endpoint:     http://{host}:{port}/api/health")
     print("=" * 60)
     uvicorn.run(
         "app.main:app", 
-        host="127.0.0.1", 
+        host=host, 
         port=port, 
         reload=True, 
         reload_dirs=[backend_dir],

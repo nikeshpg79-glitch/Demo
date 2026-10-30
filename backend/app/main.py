@@ -32,11 +32,11 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS configuration for React frontend (allows all localhost/127.0.0.1 ports and configured origins)
+# CORS configuration for React frontend (allows all localhost/127.0.0.1 ports, Render, Vercel, and configured origins)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?|https://.*\.onrender\.com|https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -77,6 +77,11 @@ async def root():
         "health": f"{settings.API_PREFIX}/health"
     }
 
+# Standard Root Health Check (Render / Kubernetes compatible)
+@app.get("/health", tags=["System Health"])
+async def root_health_check():
+    return await health.health_check()
+
 # Global Exception Handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -98,5 +103,6 @@ app.include_router(security.router, prefix=f"{settings.API_PREFIX}/security")
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8001))
-    print(f"Starting PQC HealthSecure Backend on http://127.0.0.1:{port} (docs: http://127.0.0.1:{port}/docs)")
-    uvicorn.run("app.main:app", host="127.0.0.1", port=port, reload=True, reload_dirs=[_backend_dir], app_dir=_backend_dir)
+    host = os.getenv("HOST", "0.0.0.0" if os.getenv("RENDER") else "127.0.0.1")
+    print(f"Starting PQC HealthSecure Backend on http://{host}:{port} (docs: http://{host}:{port}/docs)")
+    uvicorn.run("app.main:app", host=host, port=port, reload=True, reload_dirs=[_backend_dir], app_dir=_backend_dir)

@@ -49,7 +49,8 @@ export const QuantumSecurityDashboard: React.FC<QuantumSecurityDashboardProps> =
   const handleRunQpiAISimulation = async () => {
     setRunningSim(true);
     try {
-      const res = await fetch(`http://127.0.0.1:8001/api/pqc/quantum/demo?qubits=${qubits}`);
+      const apiBase = (import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api').replace(/\/+$/, '');
+      const res = await fetch(`${apiBase}/pqc/quantum/demo?qubits=${qubits}`);
       if (res.ok) {
         const data = await res.json();
         setSimResults({

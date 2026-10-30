@@ -45,13 +45,15 @@ export const AdministratorDashboard: React.FC = () => {
   // Investigation notes state
   const [investigationNotes, setInvestigationNotes] = useState<string>('');
 
+  const API_BASE = (import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api').replace(/\/+$/, '');
+
   const loadSecurityData = async () => {
     try {
       setRefreshing(true);
       const [eventsRes, alertsRes, auditRes] = await Promise.all([
-        fetch((import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api') + '/security/events?limit=50'),
-        fetch((import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api') + '/security/alerts?limit=50'),
-        fetch((import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api') + '/security/audit/verify')
+        fetch(`${API_BASE}/security/events?limit=50`),
+        fetch(`${API_BASE}/security/alerts?limit=50`),
+        fetch(`${API_BASE}/security/audit/verify`)
       ]);
 
       if (eventsRes.ok) {
@@ -86,7 +88,7 @@ export const AdministratorDashboard: React.FC = () => {
   const handleVerifyAuditChain = async () => {
     setVerifyingAudit(true);
     try {
-      const res = await fetch((import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api') + '/security/audit/verify');
+      const res = await fetch(`${API_BASE}/security/audit/verify`);
       if (res.ok) {
         const data = await res.json();
         setAuditStatus(data);
@@ -102,7 +104,7 @@ export const AdministratorDashboard: React.FC = () => {
     setSimulationRunning(scenario);
     setSimulationMessage(null);
     try {
-      const res = await fetch((import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api') + '/security/simulate', {
+      const res = await fetch(`${API_BASE}/security/simulate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scenario, client_ip: '192.168.1.105' })
@@ -119,7 +121,7 @@ export const AdministratorDashboard: React.FC = () => {
 
   const handleUpdateAlertStatus = async (alertId: string, newStatus: string) => {
     try {
-      const res = await fetch(`${(import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api')}/security/alerts/${alertId}`, {
+      const res = await fetch(`${API_BASE}/security/alerts/${alertId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

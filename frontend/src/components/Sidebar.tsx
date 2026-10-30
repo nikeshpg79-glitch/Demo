@@ -65,6 +65,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Tablet/Desktop collapsible toggle state
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // Determine dynamic backend label (Render deployment or local port)
+  const backendLabel = React.useMemo(() => {
+    const raw = import.meta.env.VITE_BACKEND_API_URL || '';
+    if (raw.includes('onrender.com')) return 'FastAPI (Render)';
+    const portMatch = raw.match(/:(\d+)/);
+    if (portMatch) return `FastAPI :${portMatch[1]}`;
+    return 'FastAPI :8001';
+  }, []);
+
   const handleLanguageChange = (lng: string) => {
     i18n.changeLanguage(lng);
   };
@@ -414,7 +423,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="px-2 py-1 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-slate-400">
             <span className="flex items-center space-x-1.5 truncate">
               <Server className="w-3 h-3 text-cyan-400 shrink-0" />
-              <span>FastAPI :8001</span>
+              <span>{backendLabel}</span>
             </span>
             <span className="flex items-center space-x-1">
               <span className={`w-1.5 h-1.5 rounded-full ${

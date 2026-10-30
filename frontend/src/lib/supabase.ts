@@ -48,11 +48,26 @@ export async function testSupabaseConnection(): Promise<{
   try {
     // 1. Check if backend relay already verified database
     try {
-      const apiCandidates = [
-        import.meta.env.VITE_BACKEND_API_URL ? `${import.meta.env.VITE_BACKEND_API_URL}/health` : null,
-        'http://127.0.0.1:8001/api/health',
-        'http://localhost:8001/api/health'
-      ].filter(Boolean) as string[];
+      const rawEnv = import.meta.env.VITE_BACKEND_API_URL || '';
+      const cleanEnv = rawEnv.replace(/\/+$/, '');
+      const apiCandidates: string[] = [];
+
+      if (cleanEnv) {
+        if (cleanEnv.endsWith('/api')) {
+          apiCandidates.push(`${cleanEnv}/health`);
+          apiCandidates.push(`${cleanEnv.replace(/\/api$/, '')}/health`);
+        } else {
+          apiCandidates.push(`${cleanEnv}/api/health`);
+          apiCandidates.push(`${cleanEnv}/health`);
+        }
+      }
+
+      if (!apiCandidates.includes('http://127.0.0.1:8001/api/health')) {
+        apiCandidates.push('http://127.0.0.1:8001/api/health');
+      }
+      if (!apiCandidates.includes('http://localhost:8001/api/health')) {
+        apiCandidates.push('http://localhost:8001/api/health');
+      }
 
       for (const url of apiCandidates) {
         try {
@@ -119,7 +134,8 @@ export async function testSupabaseConnection(): Promise<{
   } catch (err: any) {
     // 4. Fallback check via FastAPI health relay
     try {
-      const bRes = await fetch('http://127.0.0.1:8001/api/health', { signal: AbortSignal.timeout(2000) });
+      const fallbackUrl = (import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api').replace(/\/+$/, '') + '/health';
+      const bRes = await fetch(fallbackUrl, { signal: AbortSignal.timeout(2000) });
       if (bRes.ok) {
         const bJson = await bRes.json();
         if (bJson.database_connected) {

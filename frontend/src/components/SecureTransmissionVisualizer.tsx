@@ -38,7 +38,8 @@ export const SecureTransmissionVisualizer: React.FC<SecureTransmissionVisualizer
   const fetchTransmissions = async () => {
     try {
       setRefreshing(true);
-      const url = `${(import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api')}/security/transmissions?user_role=${currentRole}&patient_id=${patientId || 'pat-001'}`;
+      const apiBase = (import.meta.env.VITE_BACKEND_API_URL || 'http://127.0.0.1:8001/api').replace(/\/+$/, '');
+      const url = `${apiBase}/security/transmissions?user_role=${currentRole}&patient_id=${patientId || 'pat-001'}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
