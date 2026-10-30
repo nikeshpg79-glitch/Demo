@@ -25,7 +25,10 @@ MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB limit
 class StorageService:
     def __init__(self):
         self.bucket_name = "medical-documents"
-        self.local_storage_dir = os.path.join(os.getcwd(), "local_storage", self.bucket_name)
+        _current_dir = os.path.dirname(os.path.abspath(__file__))
+        _backend_dir = os.path.dirname(os.path.dirname(_current_dir))
+        _root_dir = os.path.dirname(_backend_dir)
+        self.local_storage_dir = os.path.join(_root_dir, "local_storage", self.bucket_name)
         os.makedirs(self.local_storage_dir, exist_ok=True)
 
     def validate_image_file(self, file_bytes: bytes, filename: str) -> Tuple[bool, str, str]:
@@ -109,8 +112,8 @@ class StorageService:
 
         if not signed_url:
             # Local URL served by FastAPI backend
-            port = os.getenv("PORT", "8001")
-            signed_url = f"http://127.0.0.1:{port}/api/documents/raw/{storage_path}"
+            backend_base = os.getenv("BACKEND_URL") or os.getenv("RENDER_EXTERNAL_URL") or f"http://127.0.0.1:{os.getenv('PORT', '8001')}"
+            signed_url = f"{backend_base.rstrip('/')}/api/documents/raw/{storage_path}"
 
         return {
             "storage_path": storage_path,
@@ -146,8 +149,8 @@ class StorageService:
                 print(f"[StorageService] Failed generating remote signed URL: {e}")
 
         # Local signed fallback
-        port = os.getenv("PORT", "8001")
-        return f"http://127.0.0.1:{port}/api/documents/raw/{storage_path}"
+        backend_base = os.getenv("BACKEND_URL") or os.getenv("RENDER_EXTERNAL_URL") or f"http://127.0.0.1:{os.getenv('PORT', '8001')}"
+        return f"{backend_base.rstrip('/')}/api/documents/raw/{storage_path}"
 
     def get_local_file_path(self, storage_path: str) -> Optional[str]:
         """Returns physical path if file exists locally."""

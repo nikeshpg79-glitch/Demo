@@ -1,22 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Sidebar } from './components/Sidebar';
 import { LandingPage } from './components/LandingPage';
 import { AccessDeniedView } from './components/AccessDeniedView';
 import { AuthModal } from './components/AuthModal';
-import { KeyRound } from 'lucide-react';
-import { DoctorDirectory } from './components/DoctorDirectory';
-import { AppointmentModal } from './components/AppointmentModal';
-import { PatientDashboard } from './components/PatientDashboard';
-import { DoctorDashboard } from './components/DoctorDashboard';
-import { LabAssistantDashboard } from './components/LabAssistantDashboard';
-import { MedicalReportsView } from './components/MedicalReportsView';
-import { QuantumSecurityDashboard } from './components/QuantumSecurityDashboard';
-import { SecureTransmissionVisualizer } from './components/SecureTransmissionVisualizer';
-import { AdministratorDashboard } from './components/AdministratorDashboard';
+import { KeyRound, Loader2 } from 'lucide-react';
+
+// Code-split dynamic dashboard views for maximum loading speed & reduced initial bundle size
+const DoctorDirectory = lazy(() => import('./components/DoctorDirectory').then(m => ({ default: m.DoctorDirectory })));
+const AppointmentModal = lazy(() => import('./components/AppointmentModal').then(m => ({ default: m.AppointmentModal })));
+const PatientDashboard = lazy(() => import('./components/PatientDashboard').then(m => ({ default: m.PatientDashboard })));
+const DoctorDashboard = lazy(() => import('./components/DoctorDashboard').then(m => ({ default: m.DoctorDashboard })));
+const LabAssistantDashboard = lazy(() => import('./components/LabAssistantDashboard').then(m => ({ default: m.LabAssistantDashboard })));
+const MedicalReportsView = lazy(() => import('./components/MedicalReportsView').then(m => ({ default: m.MedicalReportsView })));
+const QuantumSecurityDashboard = lazy(() => import('./components/QuantumSecurityDashboard').then(m => ({ default: m.QuantumSecurityDashboard })));
+const SecureTransmissionVisualizer = lazy(() => import('./components/SecureTransmissionVisualizer').then(m => ({ default: m.SecureTransmissionVisualizer })));
+const AdministratorDashboard = lazy(() => import('./components/AdministratorDashboard').then(m => ({ default: m.AdministratorDashboard })));
 
 import { Doctor, Appointment, LabOrder, MedicalReport, MedicalDocument, UserRole } from './types';
 import { dbService } from './lib/dbService';
+
+const ViewLoadingFallback = () => (
+  <div className="flex flex-col items-center justify-center min-h-[45vh] space-y-3 py-16">
+    <div className="w-10 h-10 rounded-2xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 animate-pulse">
+      <Loader2 className="w-5 h-5 animate-spin" />
+    </div>
+    <span className="text-xs font-mono text-slate-400">Loading quantum-secure portal view...</span>
+  </div>
+);
 
 function MainApp() {
   const { currentRole, profile, isAuthenticated, signOut } = useAuth();
@@ -190,22 +201,22 @@ function MainApp() {
       {/* Main Page Area (To the right of sidebar) */}
       <div className="flex-1 min-w-0 flex flex-col min-h-screen pt-14 md:pt-0">
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+          <Suspense fallback={<ViewLoadingFallback />}>
+            {/* Landing Page */}
+            {activeTab === 'landing' && (
+              <LandingPage
+                onOpenPortalAuth={handleOpenPortalAuth}
+                onNavigate={(tab) => setActiveTab(tab)}
+              />
+            )}
 
-          {/* Landing Page */}
-          {activeTab === 'landing' && (
-            <LandingPage
-              onOpenPortalAuth={handleOpenPortalAuth}
-              onNavigate={(tab) => setActiveTab(tab)}
-            />
-          )}
-
-          {/* Doctor Directory */}
-          {activeTab === 'doctors' && (
-            <DoctorDirectory
-              doctors={doctors}
-              onBookDoctor={handleBookDoctor}
-            />
-          )}
+            {/* Doctor Directory */}
+            {activeTab === 'doctors' && (
+              <DoctorDirectory
+                doctors={doctors}
+                onBookDoctor={handleBookDoctor}
+              />
+            )}
 
           {/* Role-Specific Dashboards with Strict RBAC */}
           {activeTab === 'dashboard' && (
@@ -330,16 +341,19 @@ function MainApp() {
             )
           )}
 
+          </Suspense>
         </main>
 
         {/* Appointment Booking Modal */}
-        {selectedDoctorForBooking && (
-          <AppointmentModal
-            doctor={selectedDoctorForBooking}
-            onClose={() => setSelectedDoctorForBooking(null)}
-            onConfirm={handleConfirmAppointment}
-          />
-        )}
+        <Suspense fallback={null}>
+          {selectedDoctorForBooking && (
+            <AppointmentModal
+              doctor={selectedDoctorForBooking}
+              onClose={() => setSelectedDoctorForBooking(null)}
+              onConfirm={handleConfirmAppointment}
+            />
+          )}
+        </Suspense>
 
         {/* Three Separate Authenticated Portals Modal */}
         <AuthModal
